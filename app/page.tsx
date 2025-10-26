@@ -1,104 +1,93 @@
-'use client'
-
-import { useState } from 'react'
-import { supabase } from './supabaseClient'
+"use client";
+import { useState } from "react";
 
 export default function Home() {
-  const [text, setText] = useState('')
-  const [result, setResult] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [input, setInput] = useState("");
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleGenerate = async () => {
-    setLoading(true)
-    try {
-      const res = await fetch(
-        'https://zktpcvnflckqscafoosh.supabase.co/functions/v1/generate',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text }),
-        }
-      )
+    if (!input.trim()) return;
+    setLoading(true);
+    setResult("");
 
-      const data = await res.json()
-      if (data.result) {
-        setResult(data.result)
-        alert('✅ Notes generated successfully!')
-      } else {
-        alert('⚠️ Something went wrong.')
-      }
-    } catch (err) {
-      console.error(err)
-      alert('❌ Error generating notes.')
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: input }),
+      });
+
+      const data = await response.json();
+      setResult(data.notes || "No notes generated.");
+    } catch (error) {
+      console.error(error);
+      setResult("Error generating notes.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false)
-  }
+  };
 
   return (
     <main
       style={{
-        minHeight: '100vh',
-        background: '#0a0a0a',
-        color: 'white',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '1.5rem',
-        padding: '2rem',
+        background: "#0d0d0d",
+        color: "#fff",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "sans-serif",
       }}
     >
-      <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>🧠 MindSpark - AI Notes Generator</h1>
+      <h1>🧠 MindSpark – AI Notes Generator</h1>
       <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder='Enter your study text here...'
+        placeholder="Enter your study text here..."
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
         style={{
-          width: '90%',
-          maxWidth: '600px',
-          height: '180px',
-          padding: '10px',
-          borderRadius: '8px',
-          border: '1px solid #444',
-          background: '#111',
-          color: 'white',
-          fontSize: '1rem',
+          width: "80%",
+          maxWidth: "600px",
+          height: "150px",
+          padding: "10px",
+          marginTop: "20px",
+          borderRadius: "8px",
+          border: "none",
+          outline: "none",
         }}
       />
       <button
         onClick={handleGenerate}
         disabled={loading}
         style={{
-          background: loading ? '#444' : '#4CAF50',
-          color: 'white',
-          padding: '12px 30px',
-          borderRadius: '8px',
-          border: 'none',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          fontSize: '1rem',
-          fontWeight: 'bold',
+          marginTop: "15px",
+          background: "#00ff88",
+          color: "#000",
+          padding: "10px 20px",
+          borderRadius: "6px",
+          border: "none",
+          cursor: "pointer",
+          fontWeight: "bold",
         }}
       >
-        {loading ? 'Generating...' : 'Generate Notes'}
+        {loading ? "Generating..." : "Generate Notes"}
       </button>
 
-      {result && (
-        <div
-          style={{
-            marginTop: '20px',
-            background: '#111',
-            padding: '20px',
-            borderRadius: '8px',
-            maxWidth: '600px',
-            width: '90%',
-            textAlign: 'left',
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          <h2 style={{ fontSize: '1.2rem', marginBottom: '10px' }}>📝 AI Notes:</h2>
-          <p>{result}</p>
-        </div>
-      )}
+      <div
+        style={{
+          marginTop: "30px",
+          width: "80%",
+          maxWidth: "600px",
+          background: "#111",
+          padding: "20px",
+          borderRadius: "8px",
+          whiteSpace: "pre-wrap",
+        }}
+      >
+        <h3>📘 AI Notes:</h3>
+        <p>{result}</p>
+      </div>
     </main>
-  )
-}
+  );
+} 
