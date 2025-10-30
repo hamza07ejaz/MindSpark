@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const client = new OpenAI({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
@@ -10,21 +10,21 @@ export async function POST(req: Request) {
     const { topic } = await req.json();
 
     if (!topic) {
-      return NextResponse.json({ error: "No topic provided" }, { status: 400 });
+      return NextResponse.json({ error: "Topic is required." }, { status: 400 });
     }
 
-    const completion = await client.chat.completions.create({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a study assistant that generates 5 question-answer pairs based on a topic." },
-        { role: "user", content: `Generate 5 detailed Q&A pairs for the topic: ${topic}` },
+        { role: "system", content: "You are a helpful study assistant that creates 5 question-answer pairs." },
+        { role: "user", content: `Generate 5 detailed Q&A pairs about: ${topic}` },
       ],
     });
 
-    const answer = completion.choices[0].message?.content ?? "No response from OpenAI";
+    const answer = completion.choices[0].message?.content || "No result found.";
     return NextResponse.json({ result: answer });
   } catch (error: any) {
-    console.error("QnA API Error:", error);
-    return NextResponse.json({ error: "Server error: " + error.message }, { status: 500 });
+    console.error("QnA Route Error:", error);
+    return NextResponse.json({ error: error.message || "Server Error" }, { status: 500 });
   }
 }
