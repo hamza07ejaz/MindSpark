@@ -16,25 +16,30 @@ export async function POST(req: Request) {
           {
             role: "system",
             content:
-              "You are an academic quiz generator. Based on provided NOTES, create 5 question-answer pairs in strict JSON format as [{question: '', answer: ''}]. Make questions factual and answerable directly from the notes.",
+              "You are an academic QnA generator. Based on the provided NOTES, generate exactly 5 question-answer pairs in valid JSON format: [{question:'', answer:''}]. Ensure the output is pure JSON only.",
           },
           { role: "user", content: notes },
         ],
-        response_format: { type: "json_object" },
-        max_tokens: 800,
       }),
     });
 
-    const json = await response.json();
-    let qna = json?.choices?.[0]?.message?.content || "[]";
+    const data = await response.json();
+    const raw = data?.choices?.[0]?.message?.content || "[]";
+
+    let qna;
     try {
-      qna = JSON.parse(qna);
-    } catch {
+      qna = JSON.parse(raw);
+    } catch (e) {
+      console.error("Invalid JSON received:", raw);
       qna = [];
     }
 
     return NextResponse.json({ qna });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Server error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to generate QnA" },
+      { status: 500 }
+    );
   }
 }

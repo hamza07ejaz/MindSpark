@@ -3,26 +3,63 @@ import { useState } from "react";
 
 export default function Home() {
   const [input, setInput] = useState("");
-  const [result, setResult] = useState("");
+  const [notes, setNotes] = useState("");
+  const [qna, setQna] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const handleGenerate = async () => {
+  const handleGenerateNotes = async () => {
     if (!input.trim()) return;
     setLoading(true);
-    setResult("");
+    setNotes("");
+    setQna([]);
 
     try {
-      const response = await fetch("/api/generate", {
+      const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: input }),
       });
 
-      const data = await response.json();
-      setResult(data.notes || "No notes generated.");
-    } catch (error) {
-      console.error(error);
-      setResult("Error generating notes.");
+      const data = await res.json();
+      setNotes(data.notes || "No notes generated.");
+    } catch (err) {
+      console.error(err);
+      setNotes("Error generating notes.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateQna = async () => {
+    if (!notes.trim()) return alert("Generate notes first!");
+    setLoading(true);
+    setQna([]);
+
+    try {
+      const res = await fetch("/api/generate-qna", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes }),
+      });
+
+      const data = await res.json();
+
+      // ✅ FIXED HERE: handles both string and object safely
+      let safeQna = [];
+      if (typeof data.qna === "string") {
+        try {
+          safeQna = JSON.parse(data.qna);
+        } catch {
+          safeQna = [];
+        }
+      } else if (Array.isArray(data.qna)) {
+        safeQna = data.qna;
+      }
+
+      setQna(safeQna);
+    } catch (err) {
+      console.error(err);
+      setQna([]);
     } finally {
       setLoading(false);
     }
@@ -39,17 +76,18 @@ export default function Home() {
         alignItems: "center",
         justifyContent: "center",
         fontFamily: "sans-serif",
+        padding: "20px",
       }}
     >
-      <h1>🧠 MindSpark – AI Notes Generator</h1>
+      <h1>🧠 MindSpark – AI Study Tool</h1>
       <textarea
-        placeholder="Enter your study text here..."
+        placeholder="Enter your study topic..."
         value={input}
         onChange={(e) => setInput(e.target.value)}
         style={{
           width: "80%",
           maxWidth: "600px",
-          height: "150px",
+          height: "120px",
           padding: "10px",
           marginTop: "20px",
           borderRadius: "8px",
@@ -57,22 +95,40 @@ export default function Home() {
           outline: "none",
         }}
       />
-      <button
-        onClick={handleGenerate}
-        disabled={loading}
-        style={{
-          marginTop: "15px",
-          background: "#00ff88",
-          color: "#000",
-          padding: "10px 20px",
-          borderRadius: "6px",
-          border: "none",
-          cursor: "pointer",
-          fontWeight: "bold",
-        }}
-      >
-        {loading ? "Generating..." : "Generate Notes"}
-      </button>
+
+      <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
+        <button
+          onClick={handleGenerateNotes}
+          disabled={loading}
+          style={{
+            background: "#00ff88",
+            color: "#000",
+            padding: "10px 20px",
+            borderRadius: "6px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          {loading ? "Loading..." : "Generate Notes"}
+        </button>
+
+        <button
+          onClick={handleGenerateQna}
+          disabled={loading}
+          style={{
+            background: "#0088ff",
+            color: "#fff",
+            padding: "10px 20px",
+            borderRadius: "6px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          {loading ? "Loading..." : "Generate Q&A"}
+        </button>
+      </div>
 
       <div
         style={{
@@ -85,9 +141,25 @@ export default function Home() {
           whiteSpace: "pre-wrap",
         }}
       >
-        <h3>📘 AI Notes:</h3>
-        <p>{result}</p>
+        <h3>📘 Notes:</h3>
+        <div dangerouslySetInnerHTML={{ __html: notes.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>").replace(/## (.*?)\n/g, "<h3>$1</h3>").replace(/\n/g, "<br/>") }} />
+
+        {qna.length > 0 && (
+          <>
+            <h3 style={{ marginTop: "20px" }}>❓ Quiz:</h3>
+            {qna.map((item, i) => (
+              <div key={i} style={{ marginBottom: "10px" }}>
+                <p>
+                  <strong>Q{i + 1}:</strong> {item.question}
+                </p>
+                <p>
+                  <strong>Answer:</strong> {item.answer}
+                </p>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </main>
   );
-} 
+}
