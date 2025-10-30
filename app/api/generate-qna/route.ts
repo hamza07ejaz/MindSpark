@@ -9,23 +9,18 @@ export async function POST(req: Request) {
   try {
     const { topic } = await req.json();
 
-    const prompt = `Generate 5 detailed study questions and answers for the topic "${topic}". 
-    Each question should start with "Q:" and each answer with "A:".`;
-
-    const completion = await openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        { role: "system", content: "You are a helpful study assistant." },
+        { role: "user", content: `Generate 5 Q&A pairs about: ${topic}` },
+      ],
     });
 
-    const content = completion.choices[0].message.content || "";
-    const qna = content.split("\n").filter((line) => line.trim() !== "");
-
-    return NextResponse.json({ qna });
+    const result = response.choices[0].message?.content || "No data generated";
+    return NextResponse.json({ result });
   } catch (error) {
-    console.error("Error generating QnA:", error);
-    return NextResponse.json(
-      { error: "Failed to generate Q&A." },
-      { status: 500 }
-    );
+    console.error(error);
+    return NextResponse.json({ error: "Failed to generate Q&A" }, { status: 500 });
   }
 }
