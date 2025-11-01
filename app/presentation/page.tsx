@@ -114,39 +114,9 @@ export default function PresentationPage() {
     );
   }
 
-  function exportPPTX() {
-    const anyWin = window as any;
-    if (!anyWin.PptxGenJS) {
-      alert("PowerPoint module not loaded yet. Please wait a second and retry.");
-      return;
-    }
-    const pptx = new anyWin.PptxGenJS();
-    pptx.layout = "16x9";
-
-    slides.forEach((s) => {
-      const slide = pptx.addSlide();
-      slide.background = { color: "0d0d0d" };
-      slide.addShape(pptx.ShapeType.rect, {
-        x: 0.4, y: 0.25, w: 9.2, h: 0.95,
-        fill: { color: "1b1b1f" }, line: { color: "3a3a44" },
-      });
-      slide.addText(s.title || "Slide", {
-        x: 0.5, y: 0.3, w: 9, h: 0.8,
-        fontSize: 28, bold: true, color: "FFFFFF",
-      });
-      const bullets = (s.bullets || []).map((b) => `• ${b}`).join("\n");
-      slide.addText(bullets || " ", {
-        x: 0.8, y: 1.4, w: 8.4, h: 4.5,
-        fontSize: 18, color: "DDDDDD",
-      });
-    });
-
-    pptx.writeFile({ fileName: `${(topic || "presentation").replace(/\s+/g, "_")}.pptx` });
-  }
-
   function copyAll() {
     const text = slides
-      .map((s) => `Slide: ${s.title}\n${s.bullets.map((b) => `• ${b}`).join("\n")}`)
+      .map((s, i) => `Slide ${i + 1}: ${s.title}\n${s.bullets.map((b) => `• ${b}`).join("\n")}`)
       .join("\n\n");
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
@@ -180,11 +150,26 @@ export default function PresentationPage() {
           <button onClick={() => setEditing((e) => !e)} disabled={slides.length === 0} style={ghostBtn}>
             {editing ? "Lock Editing" : "Edit Slides"}
           </button>
-          <button onClick={exportPPTX} disabled={slides.length === 0} style={ghostBtn}>
-            Export PowerPoint
-          </button>
-          <button onClick={copyAll} disabled={slides.length === 0} style={ghostBtn}>
-            Copy All
+
+          {/* Replaced PowerPoint with Copy Deck Button */}
+          <button
+            onClick={copyAll}
+            disabled={slides.length === 0}
+            style={{
+              background: "linear-gradient(90deg,#00ffa8,#00c7ff)",
+              color: "#061014",
+              fontWeight: 800,
+              padding: "14px 20px",
+              border: "none",
+              borderRadius: 12,
+              cursor: "pointer",
+              fontSize: 16,
+              flex: 1,
+              minWidth: 220,
+              boxShadow: "0 0 20px rgba(0,255,180,0.4)",
+            }}
+          >
+            {copied ? "Copied! Paste Anywhere ✨" : "Copy Deck (Paste Anywhere)"}
           </button>
         </div>
 
