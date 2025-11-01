@@ -95,7 +95,7 @@ export default function Home() {
         }}
       />
 
-      <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
+      <div style={{ marginTop: "15px", display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
         <button
           onClick={handleGenerateNotes}
           disabled={loading}
@@ -128,7 +128,6 @@ export default function Home() {
           {loading ? "Loading..." : "Generate Q&A"}
         </button>
 
-        {/* ✅ New Flashcards Button */}
         <button
           onClick={() => (window.location.href = "/flashcards")}
           style={{
@@ -142,6 +141,22 @@ export default function Home() {
           }}
         >
           Flashcards
+        </button>
+
+        {/* ✅ New Test Button */}
+        <button
+          onClick={() => (window.location.href = "/test")}
+          style={{
+            background: "#ff8c00",
+            color: "#fff",
+            padding: "10px 20px",
+            borderRadius: "6px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          Test
         </button>
       </div>
 
