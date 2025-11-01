@@ -30,40 +30,6 @@ export default function Home() {
     }
   };
 
-  const handleGenerateQna = async () => {
-    if (!notes.trim()) return alert("Generate notes first!");
-    setLoading(true);
-    setQna([]);
-
-    try {
-      const res = await fetch("/api/generate-qna", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes }),
-      });
-
-      const data = await res.json();
-
-      let safeQna = [];
-      if (typeof data.qna === "string") {
-        try {
-          safeQna = JSON.parse(data.qna);
-        } catch {
-          safeQna = [];
-        }
-      } else if (Array.isArray(data.qna)) {
-        safeQna = data.qna;
-      }
-
-      setQna(safeQna);
-    } catch (err) {
-      console.error(err);
-      setQna([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <main
       style={{
@@ -79,6 +45,7 @@ export default function Home() {
       }}
     >
       <h1>🧠 MindSpark – AI Study Tool</h1>
+
       <textarea
         placeholder="Enter your study topic..."
         value={input}
@@ -104,6 +71,7 @@ export default function Home() {
           justifyContent: "center",
         }}
       >
+        {/* ✅ Notes Button */}
         <button
           onClick={handleGenerateNotes}
           disabled={loading}
@@ -120,22 +88,31 @@ export default function Home() {
           {loading ? "Loading..." : "Generate Notes"}
         </button>
 
+        {/* ✅ Q&A Button – redirects to QnA page beautifully */}
         <button
-          onClick={handleGenerateQna}
-          disabled={loading}
+          onClick={() => (window.location.href = "/qna")}
           style={{
-            background: "#0088ff",
+            background: "linear-gradient(90deg, #007bff, #00bfff)",
             color: "#fff",
             padding: "10px 20px",
             borderRadius: "6px",
             border: "none",
             cursor: "pointer",
             fontWeight: "bold",
+            boxShadow: "0 0 15px rgba(0,191,255,0.4)",
+            transition: "transform 0.2s, box-shadow 0.2s",
           }}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.transform = "scale(1.05)")
+          }
+          onMouseOut={(e) =>
+            (e.currentTarget.style.transform = "scale(1)")
+          }
         >
-          {loading ? "Loading..." : "Generate Q&A"}
+          Q&A
         </button>
 
+        {/* ✅ Flashcards Button */}
         <button
           onClick={() => (window.location.href = "/flashcards")}
           style={{
@@ -151,6 +128,7 @@ export default function Home() {
           Flashcards
         </button>
 
+        {/* ✅ Test Button */}
         <button
           onClick={() => (window.location.href = "/test")}
           style={{
@@ -166,7 +144,7 @@ export default function Home() {
           Test
         </button>
 
-        {/* ✅ New Visual Map Button */}
+        {/* ✅ Visual Map Button */}
         <button
           onClick={() => (window.location.href = "/visual-map")}
           style={{
@@ -203,22 +181,6 @@ export default function Home() {
               .replace(/\n/g, "<br/>"),
           }}
         />
-
-        {qna.length > 0 && (
-          <>
-            <h3 style={{ marginTop: "20px" }}>❓ Quiz:</h3>
-            {qna.map((item, i) => (
-              <div key={i} style={{ marginBottom: "10px" }}>
-                <p>
-                  <strong>Q{i + 1}:</strong> {item.question}
-                </p>
-                <p>
-                  <strong>Answer:</strong> {item.answer}
-                </p>
-              </div>
-            ))}
-          </>
-        )}
       </div>
     </main>
   );
