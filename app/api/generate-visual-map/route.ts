@@ -1,69 +1,48 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Function to safely extract JSON from the model output
-function extractJson(text: string) {
-  const match = text.match(/\{[\s\S]*\}$/);
-  return JSON.parse(match ? match[0] : text);
-}
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   try {
     const { topic } = await req.json();
-
-    if (!topic || !topic.trim()) {
-      return NextResponse.json({ error: "Please enter a topic." }, { status: 400 });
-    }
+    if (!topic) return NextResponse.json({ error: "Missing topic" }, { status: 400 });
 
     const prompt = `
-You are an expert concept map builder. Generate a detailed JSON concept map for the topic: "${topic}".
+You are an AI mind-map generator. Create a structured multi-layer map for the topic "${topic}".
+Include clear causes, effects, importance, key ideas, and examples. 
+Each node should have a label and be linked logically. Output valid JSON like this:
 
-Rules:
-- Return only valid JSON.
-- Include 10 to 15 interconnected nodes.
-- Each node should represent a key concept, cause, effect, importance, or application related to the topic.
-- Each edge should clearly describe the relationship between nodes with one of these labels: ["cause", "effect", "importance", "definition", "example", "application", "challenge", "relationship"].
-- IDs should be like "n1", "n2", etc. for nodes and "e1", "e2", etc. for edges.
-- Ensure the graph forms a meaningful and educational visual map (no random terms).
-- Do NOT add any text outside of the JSON.
-
-Return format (no explanation outside JSON):
 {
   "nodes": [
-    { "id": "n1", "label": "Root Concept of ${topic}" },
-    { "id": "n2", "label": "Cause of ${topic}" },
-    { "id": "n3", "label": "Effect of ${topic}" }
+    {"id": "1", "data": {"label": "World War 2", "tone": "root"}, "position": {"x":0,"y":0}},
+    {"id": "2", "data": {"label": "Causes", "tone": "category"}, "position": {"x":-200,"y":150}},
+    {"id": "3", "data": {"label": "Political Tensions", "tone": "cause"}, "position": {"x":-200,"y":300}},
+    {"id": "4", "data": {"label": "Consequences", "tone": "effect"}, "position": {"x":200,"y":150}}
   ],
   "edges": [
-    { "id": "e1", "source": "n1", "target": "n2", "label": "cause", "relType": "cause" },
-    { "id": "e2", "source": "n1", "target": "n3", "label": "effect", "relType": "effect" }
+    {"id": "e1-2","source": "1","target": "2"},
+    {"id": "e2-3","source": "2","target": "3"},
+    {"id": "e1-4","source": "1","target": "4"}
   ]
 }
-`;
+Keep it under 20 nodes and 20 edges. Return ONLY valid JSON.
+    `;
 
-    const completion = await openai.chat.completions.create({
+    const result = await openai.chat.completions.create({
       model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
       temperature: 0.4,
-      messages: [
-        { role: "system", content: "You output only valid JSON following the user's format." },
-        { role: "user", content: prompt },
-      ],
     });
 
-    const raw = completion.choices[0]?.message?.content || "";
-    const parsed = extractJson(raw);
+    const text = result.choices[0]?.message?.content?.trim();
+    const jsonString = text?.replace(/^```json|```$/g, "").trim();
 
-    if (!parsed.nodes || !parsed.edges) {
-      throw new Error("Invalid map format received.");
-    }
+    const parsed = JSON.parse(jsonString);
 
-    return NextResponse.json(parsed, { status: 200 });
-  } catch (error: any) {
-    console.error("Error generating visual map:", error);
-    return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
+    return NextResponse.json(parsed);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Failed to generate visual map" }, { status: 500 });
   }
 }
