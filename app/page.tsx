@@ -88,7 +88,7 @@ export default function Home() {
           {loading ? "Loading..." : "Generate Notes"}
         </button>
 
-        {/* ✅ Q&A Button – redirects to QnA page beautifully */}
+        {/* ✅ Q&A Button */}
         <button
           onClick={() => (window.location.href = "/qna")}
           style={{
@@ -158,6 +158,30 @@ export default function Home() {
           }}
         >
           Visual Map
+        </button>
+
+        {/* ✅ Presentation Button */}
+        <button
+          onClick={() => (window.location.href = "/presentation")}
+          style={{
+            background: "linear-gradient(90deg, #ff6ec7, #6ea8ff)",
+            color: "#fff",
+            padding: "10px 20px",
+            borderRadius: "6px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+            boxShadow: "0 0 15px rgba(255,110,199,0.4)",
+            transition: "transform 0.2s, box-shadow 0.2s",
+          }}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.transform = "scale(1.05)")
+          }
+          onMouseOut={(e) =>
+            (e.currentTarget.style.transform = "scale(1)")
+          }
+        >
+          Presentation
         </button>
       </div>
 
