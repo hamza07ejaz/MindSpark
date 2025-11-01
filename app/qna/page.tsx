@@ -1,54 +1,113 @@
 "use client";
-import React, { useState } from "react";
+
+import { useState } from "react";
 
 export default function QnAPage() {
-  const [topic, setTopic] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [input, setInput] = useState("");
   const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleGenerateQnA = async () => {
-    if (!topic.trim()) return;
+    if (!input || input.trim() === "") {
+      alert("Please enter a study topic");
+      return;
+    }
+
     setLoading(true);
     setResult("");
 
     try {
-      const response = await fetch("/api/generate-qna", {
+      const response = await fetch("https://mindspark-beta.vercel.app/api/generate-qna", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          topic: input,
+        }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API Error:", errorData);
+        alert("Failed to generate Q&A. Please try again.");
+        setLoading(false);
+        return;
+      }
+
       const data = await response.json();
-      setResult(data.result || "No Q&A generated.");
+      setResult(data.result || "No Q&A found.");
     } catch (error) {
-      console.error(error);
-      setResult("Something went wrong. Try again.");
-    } finally {
-      setLoading(false);
+      console.error("Network error:", error);
+      alert("Something went wrong. Please try again.");
     }
+
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-6">
-      <h1 className="text-3xl font-bold mb-6">🤖 Generate Q&A</h1>
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "black",
+        color: "white",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+      }}
+    >
+      <h1 style={{ fontSize: "2rem", marginBottom: "20px" }}>💡 MindSpark – Generate Q&A</h1>
+
       <input
         type="text"
-        placeholder="Enter a study topic..."
-        value={topic}
-        onChange={(e) => setTopic(e.target.value)}
-        className="w-full max-w-md p-3 rounded-lg text-black mb-4"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Enter your study topic..."
+        style={{
+          width: "100%",
+          maxWidth: "500px",
+          padding: "10px",
+          borderRadius: "8px",
+          border: "1px solid gray",
+          color: "black",
+          marginBottom: "20px",
+        }}
       />
+
       <button
         onClick={handleGenerateQnA}
         disabled={loading}
-        className="bg-blue-600 hover:bg-blue-700 px-5 py-3 rounded-lg font-semibold"
+        style={{
+          backgroundColor: loading ? "#555" : "#2563eb",
+          color: "white",
+          border: "none",
+          padding: "12px 24px",
+          borderRadius: "8px",
+          cursor: "pointer",
+          fontSize: "1rem",
+        }}
       >
         {loading ? "Generating..." : "Generate Q&A"}
       </button>
 
-      <div className="w-full max-w-2xl mt-8 bg-gray-900 p-5 rounded-lg">
-        <h2 className="text-xl font-semibold mb-2">Results:</h2>
-        <pre className="whitespace-pre-wrap text-gray-300">{result}</pre>
+      <div
+        style={{
+          marginTop: "40px",
+          maxWidth: "700px",
+          width: "100%",
+          whiteSpace: "pre-wrap",
+          textAlign: "left",
+          lineHeight: "1.6",
+        }}
+      >
+        {result && (
+          <>
+            <h2 style={{ fontSize: "1.5rem", marginBottom: "10px" }}>Generated Q&A:</h2>
+            <p>{result}</p>
+          </>
+        )}
       </div>
     </div>
   );
