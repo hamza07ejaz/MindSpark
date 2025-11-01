@@ -1,201 +1,236 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
-
-const ReactFlow = dynamic(() => import("reactflow").then(m => m.ReactFlow), { ssr: false });
-const Background = dynamic(() => import("reactflow").then(m => m.Background), { ssr: false });
-const Controls = dynamic(() => import("reactflow").then(m => m.Controls), { ssr: false });
-import "reactflow/dist/style.css";
-
-type RFNode = { id: string; data: { label: string }; position: { x: number; y: number }; style?: any };
-type RFEdge = { id: string; source: string; target: string; animated?: boolean; style?: any };
+interface Node {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+}
 
 export default function VisualMapPage() {
   const [topic, setTopic] = useState("");
-  const [nodes, setNodes] = useState<RFNode[]>([]);
-  const [edges, setEdges] = useState<RFEdge[]>([]);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<{ from: string; to: string }[]>([]);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+  const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // auto focus for fast UX
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    drawMap();
+  }, [nodes, edges]);
 
-  const hasGraph = nodes.length > 0;
+  const drawMap = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#8b5cf6";
+    ctx.lineWidth = 2;
+
+    edges.forEach((edge) => {
+      const from = nodes.find((n) => n.id === edge.from);
+      const to = nodes.find((n) => n.id === edge.to);
+      if (from && to) {
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+      }
+    });
+
+    nodes.forEach((node) => {
+      ctx.beginPath();
+      ctx.fillStyle = "#9333ea";
+      ctx.strokeStyle = "#60a5fa";
+      ctx.lineWidth = 3;
+      ctx.arc(node.x, node.y, 45, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#fff";
+      ctx.font = "14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(node.label, node.x, node.y + 5);
+    });
+  };
 
   const handleGenerate = async () => {
-    const t = topic.trim();
-    if (!t) {
-      setErr("Enter a topic first.");
+    if (!topic.trim()) {
+      setError("Enter a topic first.");
       return;
     }
-    setErr("");
+    setError("");
     setLoading(true);
-    setNodes([]);
-    setEdges([]);
     try {
       const res = await fetch("/api/generate-visual-map", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: t }),
+        body: JSON.stringify({ topic }),
       });
       const data = await res.json();
-
-      if (!res.ok) {
-        setErr(data?.error || "Failed to generate map.");
+      if (!res.ok || !Array.isArray(data.nodes)) {
+        setError("Failed to generate visual map.");
       } else {
-        const n = Array.isArray(data?.nodes) ? data.nodes : [];
-        const e = Array.isArray(data?.edges) ? data.edges : [];
-        setNodes(n);
-        setEdges(e);
+        const layouted = data.nodes.map((n: any, i: number) => ({
+          id: n.id || `n${i}`,
+          label: n.label || `Concept ${i + 1}`,
+          x: 150 + (i % 5) * 180,
+          y: 150 + Math.floor(i / 5) * 150,
+        }));
+        setNodes(layouted);
+        const safeEdges =
+          Array.isArray(data.edges) && data.edges.length > 0
+            ? data.edges
+            : layouted.slice(1).map((n, i) => ({
+                from: layouted[i].id,
+                to: n.id,
+              }));
+        setEdges(safeEdges);
       }
-    } catch (e) {
-      setErr("Server error.");
+    } catch {
+      setError("Server error.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleGenerate();
-    }
-  };
-
   const copyMap = async () => {
-    const payload = JSON.stringify({ nodes, edges }, null, 2);
+    const payload = JSON.stringify({ topic, nodes, edges }, null, 2);
     await navigator.clipboard.writeText(payload);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const panelStyle = useMemo(
-    () => ({
-      background: "linear-gradient(135deg, #0d0d0d, #121212 60%)",
-      border: "1px solid #2a2a2a",
-      boxShadow: "0 0 24px rgba(147,51,234,0.18)",
-      borderRadius: 16,
-      padding: 16,
-    }),
-    []
-  );
-
   return (
-    <div
+    <main
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(180deg, #050505, #0a0a0a 55%, #111 100%)",
-        color: "#e5e7eb",
+        background: "linear-gradient(180deg,#050505,#0a0a0a 55%,#111)",
+        color: "#fff",
+        fontFamily: "sans-serif",
+        padding: "30px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "32px 16px",
-        gap: 16,
+        gap: "20px",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 1200, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "1200px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <button
           onClick={() => (window.location.href = "/")}
           style={{
             background: "#1f2937",
             color: "#cbd5e1",
+            padding: "10px 16px",
+            borderRadius: "8px",
             border: "1px solid #30363d",
-            padding: "10px 14px",
-            borderRadius: 10,
             cursor: "pointer",
           }}
         >
-          ← Back to Dashboard
+          ← Go Back
+        </button>
+        <h1
+          style={{
+            fontSize: "1.5rem",
+            background: "linear-gradient(90deg,#ec4899,#60a5fa,#34d399)",
+            WebkitBackgroundClip: "text",
+            color: "transparent",
+            fontWeight: "bold",
+          }}
+        >
+          Visual Map Generator
+        </h1>
+        <div style={{ width: "120px" }}></div>
+      </div>
+
+      <textarea
+        value={topic}
+        onChange={(e) => setTopic(e.target.value)}
+        placeholder="Enter your topic..."
+        style={{
+          width: "90%",
+          maxWidth: "600px",
+          height: "100px",
+          background: "#0f1115",
+          color: "#fff",
+          border: "1px solid #2a2a2a",
+          borderRadius: "10px",
+          padding: "10px",
+          outline: "none",
+          fontSize: "15px",
+        }}
+      />
+
+      <div style={{ display: "flex", gap: "10px" }}>
+        <button
+          onClick={handleGenerate}
+          disabled={loading}
+          style={{
+            background: "linear-gradient(90deg,#9333ea,#3b82f6)",
+            color: "#fff",
+            padding: "10px 20px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+            opacity: loading ? 0.7 : 1,
+          }}
+        >
+          {loading ? "Generating..." : "Generate Map"}
         </button>
 
-        <div style={{ fontWeight: 800, fontSize: 22, background: "linear-gradient(90deg,#ec4899,#60a5fa,#34d399)", WebkitBackgroundClip: "text", color: "transparent" }}>
-          Visual Map
-        </div>
-
-        <div />
+        <button
+          onClick={copyMap}
+          disabled={!nodes.length}
+          style={{
+            background: nodes.length ? "#374151" : "#2a2a2a",
+            color: nodes.length ? "#fff" : "#777",
+            padding: "10px 20px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: nodes.length ? "pointer" : "not-allowed",
+          }}
+        >
+          {copied ? "Copied!" : "Copy Map Data"}
+        </button>
       </div>
 
-      <div style={{ width: "100%", maxWidth: 1200, display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-        <div style={panelStyle as React.CSSProperties}>
-          <div style={{ display: "grid", gap: 10 }}>
-            <label htmlFor="topic" style={{ color: "#a78bfa", fontWeight: 600 }}>
-              Topic
-            </label>
-            <textarea
-              id="topic"
-              ref={inputRef}
-              placeholder="Type a topic, then press Generate or use Cmd/Ctrl + Enter"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              onKeyDown={handleEnter}
-              style={{
-                width: "100%",
-                minHeight: 90,
-                resize: "vertical",
-                background: "#0f1115",
-                color: "#f3f4f6",
-                border: "1px solid #2f2f2f",
-                borderRadius: 10,
-                padding: 12,
-                outline: "none",
-              }}
-            />
+      {error && <p style={{ color: "#f87171" }}>{error}</p>}
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button
-                onClick={handleGenerate}
-                disabled={loading}
-                style={{
-                  background: "linear-gradient(90deg,#9333ea,#3b82f6)",
-                  border: "none",
-                  color: "#fff",
-                  padding: "10px 16px",
-                  borderRadius: 10,
-                  cursor: "pointer",
-                  opacity: loading ? 0.7 : 1,
-                }}
-              >
-                {loading ? "Generating…" : "Generate Map"}
-              </button>
-
-              <button
-                onClick={copyMap}
-                disabled={!hasGraph}
-                style={{
-                  background: hasGraph ? "#374151" : "#2a2a2a",
-                  border: "1px solid #3a3a3a",
-                  color: hasGraph ? "#e5e7eb" : "#9ca3af",
-                  padding: "10px 16px",
-                  borderRadius: 10,
-                  cursor: hasGraph ? "pointer" : "not-allowed",
-                }}
-              >
-                {copied ? "Copied" : "Copy Map Data"}
-              </button>
-            </div>
-
-            {err && (
-              <div style={{ color: "#fca5a5", fontSize: 14 }}>
-                {err}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div style={{ ...panelStyle, padding: 0 }}>
-          <div style={{ height: 560, width: "100%", borderRadius: 16, overflow: "hidden" }}>
-            <ReactFlow nodes={nodes} edges={edges} fitView>
-              <Background color="#6d28d9" gap={22} />
-              <Controls />
-            </ReactFlow>
-          </div>
-        </div>
+      <div
+        style={{
+          position: "relative",
+          background: "#0f0f10",
+          border: "1px solid #222",
+          borderRadius: "12px",
+          width: "90%",
+          maxWidth: "1200px",
+          height: "600px",
+          marginTop: "20px",
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          width={1200}
+          height={600}
+          style={{
+            width: "100%",
+            height: "100%",
+            cursor: "grab",
+          }}
+        />
       </div>
-    </div>
+    </main>
   );
 }
