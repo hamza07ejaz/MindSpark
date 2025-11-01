@@ -2,9 +2,14 @@
 
 import { useState } from "react";
 
+interface Flashcard {
+  question: string;
+  answer: string;
+}
+
 export default function FlashcardsPage() {
   const [topic, setTopic] = useState("");
-  const [flashcards, setFlashcards] = useState([]);
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -24,7 +29,7 @@ export default function FlashcardsPage() {
         body: JSON.stringify({ topic }),
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && Array.isArray(data.flashcards)) {
         setFlashcards(data.flashcards);
         setIndex(0);
       } else {
@@ -39,7 +44,8 @@ export default function FlashcardsPage() {
   };
 
   const handleFlip = () => setFlipped(!flipped);
-  const nextCard = () => setIndex((prev) => (prev + 1) % flashcards.length);
+  const nextCard = () =>
+    setIndex((prev) => (prev + 1) % flashcards.length);
   const prevCard = () =>
     setIndex((prev) => (prev - 1 + flashcards.length) % flashcards.length);
 
@@ -80,7 +86,7 @@ export default function FlashcardsPage() {
               className="absolute w-full h-full flex items-center justify-center px-6 text-xl backface-hidden"
               style={{ backfaceVisibility: "hidden" }}
             >
-              {flashcards[index].question}
+              {flashcards[index]?.question}
             </div>
             <div
               className="absolute w-full h-full flex items-center justify-center px-6 text-xl"
@@ -89,7 +95,7 @@ export default function FlashcardsPage() {
                 backfaceVisibility: "hidden",
               }}
             >
-              {flashcards[index].answer}
+              {flashcards[index]?.answer}
             </div>
           </div>
 
