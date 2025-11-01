@@ -11,61 +11,81 @@ export async function POST(req: Request) {
     }
 
     const prompt = `
-You are a professional AI knowledge map generator.
-Your task is to create a **multi-layer visual concept map** for the topic "${topic}".
-The goal is to make it **visually understandable, educational, and logically structured**.
+You are a world-class AI concept map creator.
+Generate an **informative, educational visual map** for the topic "${topic}" that explains it in depth.
 
-Rules:
-1. Each node must contain **real educational text** — no placeholders like "Concept 1".
-2. Create 3 main branches: Causes/Roots, Effects/Consequences, Importance/Applications.
-3. Each main branch should have 3–5 child concepts that expand on that idea.
-4. Each label should be clear, short, and human-understandable (like "Environmental Impact", "Technological Innovation", etc.).
-5. Keep total nodes around 12–18 for clarity.
-6. Use hierarchical positions (top = root, below = details).
-7. Output valid JSON only.
+Requirements:
+1. Output MUST have **real educational node labels** — no "Concept 1" or placeholders.
+2. Organize content into 3 clear branches: Causes/Origins, Effects/Consequences, and Importance/Applications.
+3. Each branch should include multiple subtopics (12–16 total nodes).
+4. Make every label **clear, meaningful, and concise** (like "Political Causes", "Economic Impact", "Cultural Significance").
+5. Ensure JSON is valid and properly formatted.
 
-Format:
+Return ONLY JSON in this format:
 {
   "nodes": [
     {"id": "1", "data": {"label": "Main Topic: ${topic}"}, "position": {"x": 0, "y": 0}},
     {"id": "2", "data": {"label": "Causes of ${topic}"}, "position": {"x": -400, "y": 150}},
     {"id": "3", "data": {"label": "Effects of ${topic}"}, "position": {"x": 400, "y": 150}},
-    {"id": "4", "data": {"label": "Importance of ${topic}"}, "position": {"x": 0, "y": 150}},
-    {"id": "5", "data": {"label": "Historical Causes"}, "position": {"x": -600, "y": 300}},
-    {"id": "6", "data": {"label": "Economic Factors"}, "position": {"x": -400, "y": 300}},
-    {"id": "7", "data": {"label": "Political Reasons"}, "position": {"x": -200, "y": 300}},
-    {"id": "8", "data": {"label": "Social Consequences"}, "position": {"x": 400, "y": 300}},
-    {"id": "9", "data": {"label": "Environmental Impact"}, "position": {"x": 600, "y": 300}},
-    {"id": "10", "data": {"label": "Technological Influence"}, "position": {"x": 200, "y": 300}},
-    {"id": "11", "data": {"label": "Global Importance"}, "position": {"x": 0, "y": 450}},
-    {"id": "12", "data": {"label": "Applications in Modern World"}, "position": {"x": 200, "y": 450}}
+    {"id": "4", "data": {"label": "Importance of ${topic}"}, "position": {"x": 0, "y": 150}}
   ],
-  "edges": [
-    {"id": "e1-2", "source": "1", "target": "2"},
-    {"id": "e1-3", "source": "1", "target": "3"},
-    {"id": "e1-4", "source": "1", "target": "4"},
-    {"id": "e2-5", "source": "2", "target": "5"},
-    {"id": "e2-6", "source": "2", "target": "6"},
-    {"id": "e2-7", "source": "2", "target": "7"},
-    {"id": "e3-8", "source": "3", "target": "8"},
-    {"id": "e3-9", "source": "3", "target": "9"},
-    {"id": "e3-10", "source": "3", "target": "10"},
-    {"id": "e4-11", "source": "4", "target": "11"},
-    {"id": "e4-12", "source": "4", "target": "12"}
-  ]
+  "edges": []
 }
 
-Only return the JSON. No markdown, no explanations.`;
+After this base structure, expand it by adding around 10–12 **real subnodes** like:
+- “Political Causes”
+- “Technological Advancements”
+- “Environmental Consequences”
+- “Social Impact”
+- “Future Implications”
+Each connected properly using edges.
+
+ONLY return valid JSON — no text, no markdown, no code fences.
+`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      temperature: 0.7,
+      temperature: 0.6,
       messages: [{ role: "user", content: prompt }],
     });
 
-    const text = completion.choices[0]?.message?.content?.trim() || "";
-    const clean = text.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(clean);
+    let text = completion.choices[0]?.message?.content?.trim() || "";
+    text = text.replace(/```json|```/g, "").trim();
+
+    // Try parsing GPT output safely
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      // If GPT fails, fall back to a prebuilt informative example
+      parsed = {
+        nodes: [
+          { id: "1", data: { label: `Main Topic: ${topic}` }, position: { x: 0, y: 0 } },
+          { id: "2", data: { label: `Definition of ${topic}` }, position: { x: -400, y: 150 } },
+          { id: "3", data: { label: `Causes of ${topic}` }, position: { x: 0, y: 150 } },
+          { id: "4", data: { label: `Effects of ${topic}` }, position: { x: 400, y: 150 } },
+          { id: "5", data: { label: `Historical Background` }, position: { x: -600, y: 300 } },
+          { id: "6", data: { label: `Economic Factors` }, position: { x: -300, y: 300 } },
+          { id: "7", data: { label: `Political Impact` }, position: { x: 0, y: 300 } },
+          { id: "8", data: { label: `Cultural Significance` }, position: { x: 300, y: 300 } },
+          { id: "9", data: { label: `Environmental Consequences` }, position: { x: 600, y: 300 } },
+          { id: "10", data: { label: `Modern Relevance` }, position: { x: 0, y: 450 } },
+          { id: "11", data: { label: `Future Implications` }, position: { x: 300, y: 450 } }
+        ],
+        edges: [
+          { id: "e1-2", source: "1", target: "2" },
+          { id: "e1-3", source: "1", target: "3" },
+          { id: "e1-4", source: "1", target: "4" },
+          { id: "e3-5", source: "3", target: "5" },
+          { id: "e3-6", source: "3", target: "6" },
+          { id: "e4-7", source: "4", target: "7" },
+          { id: "e4-8", source: "4", target: "8" },
+          { id: "e4-9", source: "4", target: "9" },
+          { id: "e1-10", source: "1", target: "10" },
+          { id: "e10-11", source: "10", target: "11" }
+        ]
+      };
+    }
 
     return NextResponse.json(parsed);
   } catch (error: any) {
