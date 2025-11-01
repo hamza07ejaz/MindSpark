@@ -1,26 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
-
-const ReactFlow = dynamic(() => import("reactflow").then(m => m.ReactFlow), { ssr: false });
-const Background = dynamic(() => import("reactflow").then(m => m.Background), { ssr: false });
-const Controls = dynamic(() => import("reactflow").then(m => m.Controls), { ssr: false });
-const MiniMap = dynamic(() => import("reactflow").then(m => m.MiniMap), { ssr: false });
 
 export default function VisualMapPage() {
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
-  const [nodes, setNodes] = useState<any[]>([]);
-  const [edges, setEdges] = useState<any[]>([]);
+  const [mapData, setMapData] = useState<any[]>([]);
 
   const generateMap = async () => {
     if (!topic.trim()) {
-      alert("Please enter a topic first!");
+      alert("Please enter a topic");
       return;
     }
-
     setLoading(true);
+
     try {
       const res = await fetch("/api/generate-visual-map", {
         method: "POST",
@@ -29,81 +22,62 @@ export default function VisualMapPage() {
       });
 
       const data = await res.json();
-
-      if (data.nodes && data.nodes.length > 0) {
-        const formattedNodes = data.nodes.map((n: any, i: number) => ({
-          id: n.id?.toString() || `${i}`,
-          data: { label: n.data?.label || `Node ${i + 1}` },
-          position: n.position || { x: (i % 5) * 250, y: Math.floor(i / 5) * 200 },
-          style: {
-            background: "linear-gradient(135deg, #9333ea, #6d28d9)",
-            color: "#fff",
-            borderRadius: 10,
-            border: "2px solid #a855f7",
-            fontWeight: 600,
-            fontSize: 15,
-            textAlign: "center",
-            width: 200,
-            padding: "12px",
-            boxShadow: "0 0 20px rgba(147,51,234,0.4)",
-          },
-        }));
-
-        const formattedEdges = (data.edges || []).map((e: any, idx: number) => ({
-          id: e.id || `edge-${idx}`,
-          source: e.source?.toString(),
-          target: e.target?.toString(),
-          animated: true,
-          style: { stroke: "#a855f7", strokeWidth: 2 },
-        }));
-
-        setNodes(formattedNodes);
-        setEdges(formattedEdges);
+      if (data && data.concepts && data.concepts.length > 0) {
+        setMapData(data.concepts);
       } else {
-        alert("No valid data returned from AI.");
+        alert("No information found for this topic.");
       }
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       alert("Error generating map.");
     } finally {
       setLoading(false);
     }
   };
 
+  const getPosition = (index: number, total: number) => {
+    const angle = (index / total) * 2 * Math.PI;
+    const radius = 220 + Math.floor(index / 8) * 130;
+    return {
+      x: 500 + radius * Math.cos(angle),
+      y: 350 + radius * Math.sin(angle),
+    };
+  };
+
   return (
     <main
       style={{
         background: "#0d0d0d",
-        color: "#fff",
+        color: "white",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         padding: "30px",
+        fontFamily: "sans-serif",
       }}
     >
-      <h1 style={{ fontSize: "26px", fontWeight: "bold", marginBottom: "10px" }}>
-        AI Visual Knowledge Map
+      <h1 style={{ fontSize: 26, fontWeight: 700, marginBottom: 15 }}>
+        AI Visual Knowledge Map Generator
       </h1>
 
       <input
+        placeholder="Enter a topic (e.g. World War 2)"
         value={topic}
         onChange={(e) => setTopic(e.target.value)}
-        placeholder="Enter a study topic..."
         style={{
           width: "80%",
-          maxWidth: "500px",
+          maxWidth: 500,
           padding: "12px",
-          marginBottom: "20px",
-          borderRadius: "8px",
-          border: "1px solid #a855f7",
+          borderRadius: 8,
           background: "#1a1a1a",
           color: "#fff",
+          border: "1px solid #9333ea",
           textAlign: "center",
         }}
       />
 
-      <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+      <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
         <button
           onClick={generateMap}
           disabled={loading}
@@ -111,7 +85,7 @@ export default function VisualMapPage() {
             background: "#8b5cf6",
             color: "#fff",
             padding: "10px 20px",
-            borderRadius: "8px",
+            borderRadius: 8,
             border: "none",
             cursor: "pointer",
             fontWeight: "600",
@@ -121,14 +95,12 @@ export default function VisualMapPage() {
         </button>
 
         <button
-          onClick={() =>
-            navigator.clipboard.writeText(JSON.stringify({ nodes, edges }, null, 2))
-          }
+          onClick={() => navigator.clipboard.writeText(JSON.stringify(mapData, null, 2))}
           style={{
             background: "#22c55e",
             color: "#fff",
             padding: "10px 20px",
-            borderRadius: "8px",
+            borderRadius: 8,
             border: "none",
             cursor: "pointer",
             fontWeight: "600",
@@ -143,7 +115,7 @@ export default function VisualMapPage() {
             background: "#f97316",
             color: "#fff",
             padding: "10px 20px",
-            borderRadius: "8px",
+            borderRadius: 8,
             border: "none",
             cursor: "pointer",
             fontWeight: "600",
@@ -155,19 +127,52 @@ export default function VisualMapPage() {
 
       <div
         style={{
-          width: "100%",
-          height: "75vh",
-          background: "#111",
-          borderRadius: "12px",
-          border: "1px solid #2d2d2d",
+          marginTop: "40px",
+          width: "95%",
+          height: "70vh",
+          background: "radial-gradient(circle at center, #111 0%, #000 100%)",
+          borderRadius: 12,
+          position: "relative",
           overflow: "hidden",
+          border: "1px solid #222",
         }}
       >
-        <ReactFlow nodes={nodes} edges={edges} fitView>
-          <Background color="#333" />
-          <MiniMap nodeColor={() => "#A855F7"} />
-          <Controls />
-        </ReactFlow>
+        {mapData.length > 0 ? (
+          <svg width="100%" height="100%">
+            {mapData.map((item: any, i: number) => {
+              const { x, y } = getPosition(i, mapData.length);
+              return (
+                <g key={i}>
+                  <circle cx={x} cy={y} r="80" fill="url(#grad)" stroke="#9333ea" strokeWidth="3" />
+                  <text
+                    x={x}
+                    y={y}
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="14"
+                    fontWeight="bold"
+                    dy=".3em"
+                    style={{ pointerEvents: "none" }}
+                  >
+                    {item.title.length > 18
+                      ? item.title.slice(0, 18) + "..."
+                      : item.title}
+                  </text>
+                </g>
+              );
+            })}
+            <defs>
+              <radialGradient id="grad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#6b21a8" />
+              </radialGradient>
+            </defs>
+          </svg>
+        ) : (
+          <p style={{ textAlign: "center", marginTop: "200px", color: "#aaa" }}>
+            Enter a topic above and click "Generate Map" to see your AI visual map.
+          </p>
+        )}
       </div>
     </main>
   );
