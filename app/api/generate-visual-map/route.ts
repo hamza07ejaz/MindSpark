@@ -11,50 +11,46 @@ export async function POST(req: Request) {
     }
 
     const prompt = `
-You are an advanced concept map generator. 
-Create a **multi-layer visual knowledge map** for the topic "${topic}" that is visually understandable, beautifully structured, and educational. 
-Make it so that a student could quickly understand the entire concept at a glance.
+You are an AI that generates **educational, beautiful, multi-layer visual knowledge maps**.
 
-Rules:
-- Use **bold, meaningful labels** (no "Concept 1" etc.).
-- Include 3 main branches: Causes/Roots, Effects/Consequences, Importance/Applications.
-- Each main branch should have 3–5 detailed sub-nodes.
-- Maintain clear cause → effect → importance hierarchy.
-- Keep total nodes between 12–18.
-- Output clean, valid JSON.
+Generate a structured concept map for the topic "${topic}" that helps a student visually understand:
+- Root definition
+- Causes or origins
+- Key elements or components
+- Effects or outcomes
+- Importance and applications
 
-Return ONLY this format:
+The output must look **visually logical**, with hierarchical layers.
+Each node label must be **meaningful**, **bold**, and **human-readable** — no generic names like "Concept 1" or "Node A".
+The structure should clearly represent relationships (arrows/edges) between ideas.
 
+Output ONLY valid JSON in this structure:
 {
   "nodes": [
-    {"id": "1", "data": {"label": "Root Topic: ${topic}"}, "position": {"x": 0, "y": 0}},
-    {"id": "2", "data": {"label": "Causes of ${topic}"}, "position": {"x": -300, "y": 150}},
-    {"id": "3", "data": {"label": "Effects of ${topic}"}, "position": {"x": 300, "y": 150}},
-    {"id": "4", "data": {"label": "Importance of ${topic}"}, "position": {"x": 0, "y": 300}},
-    {"id": "5", "data": {"label": "Political Causes"}, "position": {"x": -500, "y": 300}},
-    {"id": "6", "data": {"label": "Economic Causes"}, "position": {"x": -300, "y": 300}},
-    {"id": "7", "data": {"label": "Social Consequences"}, "position": {"x": 300, "y": 300}},
-    {"id": "8", "data": {"label": "Technological Advancements"}, "position": {"x": 500, "y": 300}},
-    {"id": "9", "data": {"label": "Global Importance"}, "position": {"x": 0, "y": 450}}
+    {"id": "1", "data": {"label": "Root: ${topic}"}, "position": {"x": 0, "y": 0}},
+    {"id": "2", "data": {"label": "Definition of ${topic}"}, "position": {"x": -250, "y": 120}},
+    {"id": "3", "data": {"label": "Causes of ${topic}"}, "position": {"x": 250, "y": 120}},
+    {"id": "4", "data": {"label": "Key Elements"}, "position": {"x": 0, "y": 240}},
+    {"id": "5", "data": {"label": "Effects of ${topic}"}, "position": {"x": 250, "y": 360}},
+    {"id": "6", "data": {"label": "Importance & Applications"}, "position": {"x": -250, "y": 360}},
+    {"id": "7", "data": {"label": "Future Impact"}, "position": {"x": 0, "y": 480}}
   ],
   "edges": [
     {"id": "e1-2", "source": "1", "target": "2"},
     {"id": "e1-3", "source": "1", "target": "3"},
     {"id": "e1-4", "source": "1", "target": "4"},
-    {"id": "e2-5", "source": "2", "target": "5"},
-    {"id": "e2-6", "source": "2", "target": "6"},
-    {"id": "e3-7", "source": "3", "target": "7"},
-    {"id": "e3-8", "source": "3", "target": "8"},
-    {"id": "e4-9", "source": "4", "target": "9"}
+    {"id": "e4-5", "source": "4", "target": "5"},
+    {"id": "e4-6", "source": "4", "target": "6"},
+    {"id": "e5-7", "source": "5", "target": "7"},
+    {"id": "e6-7", "source": "6", "target": "7"}
   ]
 }
 
-Ensure JSON is valid and directly parsable.
-`;
+Return only valid JSON — no markdown, no text outside JSON.`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      temperature: 0.5,
+      temperature: 0.6,
       messages: [{ role: "user", content: prompt }],
     });
 
