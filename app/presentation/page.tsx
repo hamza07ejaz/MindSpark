@@ -434,4 +434,16 @@ const chipBtn: React.CSSProperties = {
   color: "#dedeee",
   padding: "6px 10px",
   borderRadius: 10,
+  cursor: "pointer",
+};
+
+const addBulletBtn: React.CSSProperties = {
+  alignSelf: "flex-start",
+  background: "#1b1c22",
+  border: "1px solid #2e3040",
+  color: "#cfd0e6",
+  padding: "8px 10px",
+  borderRadius: 10,
+  cursor: "pointer",
+};
  
