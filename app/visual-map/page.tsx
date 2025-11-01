@@ -8,10 +8,15 @@ interface Node {
   y: number;
 }
 
+interface Edge {
+  from: string;
+  to: string;
+}
+
 export default function VisualMapPage() {
   const [topic, setTopic] = useState("");
   const [nodes, setNodes] = useState<Node[]>([]);
-  const [edges, setEdges] = useState<{ from: string; to: string }[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -74,20 +79,25 @@ export default function VisualMapPage() {
       if (!res.ok || !Array.isArray(data.nodes)) {
         setError("Failed to generate visual map.");
       } else {
-        const layouted = data.nodes.map((n: any, i: number) => ({
+        const layouted: Node[] = data.nodes.map((n: any, i: number) => ({
           id: n.id || `n${i}`,
           label: n.label || `Concept ${i + 1}`,
           x: 150 + (i % 5) * 180,
           y: 150 + Math.floor(i / 5) * 150,
         }));
-        setNodes(layouted);
-        const safeEdges =
+
+        const safeEdges: Edge[] =
           Array.isArray(data.edges) && data.edges.length > 0
-            ? data.edges
-            : layouted.slice(1).map((n, i) => ({
+            ? data.edges.map((e: any) => ({
+                from: e.from || e.source || layouted[0]?.id || "n1",
+                to: e.to || e.target || layouted[1]?.id || "n2",
+              }))
+            : layouted.slice(1).map((n: Node, i: number) => ({
                 from: layouted[i].id,
                 to: n.id,
               }));
+
+        setNodes(layouted);
         setEdges(safeEdges);
       }
     } catch {
