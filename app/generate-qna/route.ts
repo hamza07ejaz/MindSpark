@@ -1,44 +1,46 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
 
 export async function POST(req: Request) {
   try {
-    const { notes } = await req.json();
+    const { topic } = await req.json();
+    console.log("Received topic:", topic);
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an academic QnA generator. Based on the provided NOTES, generate exactly 5 question-answer pairs in valid JSON format: [{question:'', answer:''}]. Ensure the output is pure JSON only.",
-          },
-          { role: "user", content: notes },
-        ],
-      }),
-    });
-
-    const data = await response.json();
-    const raw = data?.choices?.[0]?.message?.content || "[]";
-
-    let qna;
-    try {
-      qna = JSON.parse(raw);
-    } catch (e) {
-      console.error("Invalid JSON received:", raw);
-      qna = [];
+    if (!topic || topic.trim() === "") {
+      return NextResponse.json(
+        { error: "Topic is required." },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ qna });
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful study assistant that creates 5 clear and detailed Q&A pairs for students.",
+        },
+        {
+          role: "user",
+          content: `Generate 5 detailed question and answer pairs about: ${topic}`,
+        },
+      ],
+    });
+
+    const answer =
+      completion.choices?.[0]?.message?.content?.trim() ||
+      "No Q&A generated. Try again.";
+
+    return NextResponse.json({ result: answer });
   } catch (error: any) {
-    console.error("Server error:", error);
+    console.error("QnA Route Error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to generate QnA" },
+      { error: error.message || "Internal Server Error" },
       { status: 500 }
     );
   }
