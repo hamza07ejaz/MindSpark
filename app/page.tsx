@@ -195,6 +195,26 @@ export default function Home() {
         >
           Citations
         </button>
+
+        {/* ✅ Grammar Button */}
+        <button
+          onClick={() => (window.location.href = "/grammar")}
+          style={{
+            background: "linear-gradient(90deg, #00ffa8, #00c7ff)",
+            color: "#000",
+            padding: "10px 20px",
+            borderRadius: "6px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+            boxShadow: "0 0 15px rgba(0,199,255,0.4)",
+            transition: "transform 0.2s, box-shadow 0.2s",
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+          onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
+        >
+          Grammar
+        </button>
       </div>
 
       <div
