@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 
 export default function FlashcardsPage() {
   const [topic, setTopic] = useState("");
@@ -16,7 +15,6 @@ export default function FlashcardsPage() {
       setError("Please enter a topic.");
       return;
     }
-
     setLoading(true);
     setError("");
     try {
@@ -48,12 +46,14 @@ export default function FlashcardsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white flex flex-col items-center justify-center px-6 py-10">
       <h1 className="text-3xl font-bold mb-4">AI Flashcards Generator</h1>
+
       <input
         value={topic}
         onChange={(e) => setTopic(e.target.value)}
         placeholder="Enter a study topic..."
         className="w-full max-w-md p-3 rounded-lg text-black outline-none mb-4"
       />
+
       <button
         onClick={generateFlashcards}
         disabled={loading}
@@ -61,23 +61,29 @@ export default function FlashcardsPage() {
       >
         {loading ? "Generating..." : "Generate Flashcards"}
       </button>
+
       {error && <p className="text-red-400 mt-3">{error}</p>}
 
       {flashcards.length > 0 && (
         <div className="mt-10 flex flex-col items-center space-y-6">
-          <motion.div
-            key={index}
+          <div
+            className={`relative w-96 h-56 bg-gray-800 rounded-xl flex items-center justify-center text-center cursor-pointer shadow-lg transition-transform duration-500 ${
+              flipped ? "rotate-y-180" : ""
+            }`}
             onClick={handleFlip}
-            className="w-96 h-56 bg-gray-800 rounded-xl flex items-center justify-center text-center cursor-pointer shadow-lg"
-            animate={{ rotateY: flipped ? 180 : 0 }}
-            transition={{ duration: 0.5 }}
-            style={{ transformStyle: "preserve-3d" }}
+            style={{
+              transformStyle: "preserve-3d",
+              perspective: "1000px",
+            }}
           >
-            <div className="absolute backface-hidden text-xl px-6">
+            <div
+              className="absolute w-full h-full flex items-center justify-center px-6 text-xl backface-hidden"
+              style={{ backfaceVisibility: "hidden" }}
+            >
               {flashcards[index].question}
             </div>
             <div
-              className="absolute text-xl px-6"
+              className="absolute w-full h-full flex items-center justify-center px-6 text-xl"
               style={{
                 transform: "rotateY(180deg)",
                 backfaceVisibility: "hidden",
@@ -85,7 +91,7 @@ export default function FlashcardsPage() {
             >
               {flashcards[index].answer}
             </div>
-          </motion.div>
+          </div>
 
           <div className="flex space-x-4 mt-4">
             <button
@@ -101,7 +107,7 @@ export default function FlashcardsPage() {
               Next
             </button>
             <button
-              onClick={() => window.location.href = "/"}
+              onClick={() => (window.location.href = "/")}
               className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg"
             >
               Go Back
@@ -109,6 +115,12 @@ export default function FlashcardsPage() {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        .rotate-y-180 {
+          transform: rotateY(180deg);
+        }
+      `}</style>
     </div>
   );
 }
