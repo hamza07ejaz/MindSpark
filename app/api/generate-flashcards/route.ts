@@ -14,12 +14,15 @@ export async function POST(req: Request) {
     }
 
     const prompt = `
-    Create 5 flashcards about "${topic}". 
-    Respond in strict JSON format:
+    You are a flashcard generator.
+    Create exactly 5 flashcards about "${topic}".
+    Each flashcard must have a "question" and "answer" field.
+    Reply ONLY in valid JSON array format, like this:
     [
-      {"question": "...", "answer": "..."},
-      {"question": "...", "answer": "..."}
+      {"question": "What is AI?", "answer": "Artificial Intelligence"},
+      {"question": "What is ML?", "answer": "Machine Learning"}
     ]
+    Do NOT include extra text before or after JSON.
     `;
 
     const completion = await openai.chat.completions.create({
@@ -27,14 +30,21 @@ export async function POST(req: Request) {
       messages: [{ role: "user", content: prompt }],
     });
 
-    const text = completion.choices[0]?.message?.content?.trim() || "[]";
+    let text = completion.choices[0]?.message?.content?.trim() || "[]";
 
-    // ✅ Clean JSON (avoid double parsing errors)
+    // ✅ Auto-clean output to ensure valid JSON
+    const jsonStart = text.indexOf("[");
+    const jsonEnd = text.lastIndexOf("]");
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      text = text.slice(jsonStart, jsonEnd + 1);
+    }
+
     let flashcards;
     try {
       flashcards = JSON.parse(text);
     } catch {
-      flashcards = [{ question: "Error parsing JSON", answer: text }];
+      console.error("Invalid JSON from model:", text);
+      flashcards = [{ question: "Error", answer: "Invalid format returned from AI" }];
     }
 
     return NextResponse.json({ flashcards });
