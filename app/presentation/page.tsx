@@ -1,8 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Script from "next/script";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 
 type Slide = { title: string; bullets: string[]; notes?: string };
 
@@ -11,18 +9,6 @@ const BASE_CSS = `
   .deck{padding:20px}
   .slide{margin-bottom:12px}
 `;
-const PRINT_CSS = `
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .no-print { display: none !important; }
-    .deck { width: 100% !important; }
-    .slide {
-      page-break-after: always;
-      break-after: page;
-      box-shadow: none !important;
-    }
-  }
-`;
 
 export default function PresentationPage() {
   const [topic, setTopic] = useState("");
@@ -30,6 +16,7 @@ export default function PresentationPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [editing, setEditing] = useState(true);
+  const [copied, setCopied] = useState(false);
   const deckRef = useRef<HTMLDivElement>(null);
 
   const steps = useMemo(
@@ -127,30 +114,10 @@ export default function PresentationPage() {
     );
   }
 
-  async function exportPDF() {
-    if (!deckRef.current) return;
-    const deck = deckRef.current;
-    const pdf = new jsPDF("landscape", "pt", "a4");
-    const slidesEls = Array.from(deck.children) as HTMLElement[];
-
-    for (let i = 0; i < slidesEls.length; i++) {
-      const canvas = await html2canvas(slidesEls[i], {
-        backgroundColor: "#0d0d0d",
-        scale: 2,
-      });
-      const imgData = canvas.toDataURL("image/png");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
-      if (i < slidesEls.length - 1) pdf.addPage();
-    }
-    pdf.save(`${(topic || "presentation").replace(/\s+/g, "_")}.pdf`);
-  }
-
   function exportPPTX() {
     const anyWin = window as any;
     if (!anyWin.PptxGenJS) {
-      alert("Export module not loaded yet. Please try again in a moment.");
+      alert("PowerPoint module not loaded yet. Please wait a second and retry.");
       return;
     }
     const pptx = new anyWin.PptxGenJS();
@@ -158,50 +125,33 @@ export default function PresentationPage() {
 
     slides.forEach((s) => {
       const slide = pptx.addSlide();
-      slide.addText(s.title || "Slide", {
-        x: 0.5,
-        y: 0.3,
-        w: 9,
-        h: 0.8,
-        fontSize: 28,
-        bold: true,
-        color: "FFFFFF",
-      });
+      slide.background = { color: "0d0d0d" };
       slide.addShape(pptx.ShapeType.rect, {
-        x: 0.4,
-        y: 0.25,
-        w: 9.2,
-        h: 0.95,
-        fill: { color: "1b1b1f" },
-        line: { color: "3a3a44" },
+        x: 0.4, y: 0.25, w: 9.2, h: 0.95,
+        fill: { color: "1b1b1f" }, line: { color: "3a3a44" },
+      });
+      slide.addText(s.title || "Slide", {
+        x: 0.5, y: 0.3, w: 9, h: 0.8,
+        fontSize: 28, bold: true, color: "FFFFFF",
       });
       const bullets = (s.bullets || []).map((b) => `• ${b}`).join("\n");
       slide.addText(bullets || " ", {
-        x: 0.8,
-        y: 1.4,
-        w: 8.4,
-        h: 4.5,
-        fontSize: 18,
-        color: "DDDDDD",
+        x: 0.8, y: 1.4, w: 8.4, h: 4.5,
+        fontSize: 18, color: "DDDDDD",
       });
-      slide.background = { color: "0d0d0d" };
     });
 
-    pptx.writeFile({
-      fileName: `${(topic || "presentation").replace(/\s+/g, "_")}.pptx`,
-    });
+    pptx.writeFile({ fileName: `${(topic || "presentation").replace(/\s+/g, "_")}.pptx` });
   }
 
-  function copyPresentation() {
-    if (slides.length === 0) return;
+  function copyAll() {
     const text = slides
-      .map(
-        (s, i) =>
-          `Slide ${i + 1}: ${s.title}\n${s.bullets.map((b) => `• ${b}`).join("\n")}`
-      )
+      .map((s) => `Slide: ${s.title}\n${s.bullets.map((b) => `• ${b}`).join("\n")}`)
       .join("\n\n");
-    navigator.clipboard.writeText(text);
-    alert("Copied to clipboard ✅");
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   }
 
   return (
@@ -210,11 +160,10 @@ export default function PresentationPage() {
         src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.min.js"
         strategy="afterInteractive"
       />
+
       <div style={container}>
         <div style={header}>
-          <button onClick={() => (window.location.href = "/")} style={backBtn}>
-            ← Back
-          </button>
+          <button onClick={() => (window.location.href = "/")} style={backBtn}>← Back</button>
           <h1 style={title}>AI Presentation</h1>
         </div>
 
@@ -228,23 +177,20 @@ export default function PresentationPage() {
           <button onClick={handleGenerate} disabled={loading} style={primaryBtn}>
             {loading ? "Generating…" : "Generate Presentation"}
           </button>
-          <button
-            onClick={() => setEditing((e) => !e)}
-            disabled={slides.length === 0}
-            style={ghostBtn}
-          >
+          <button onClick={() => setEditing((e) => !e)} disabled={slides.length === 0} style={ghostBtn}>
             {editing ? "Lock Editing" : "Edit Slides"}
-          </button>
-          <button onClick={exportPDF} disabled={slides.length === 0} style={ghostBtn}>
-            Export PDF
           </button>
           <button onClick={exportPPTX} disabled={slides.length === 0} style={ghostBtn}>
             Export PowerPoint
           </button>
-          <button onClick={copyPresentation} disabled={slides.length === 0} style={ghostBtn}>
-            Copy Slides
+          <button onClick={copyAll} disabled={slides.length === 0} style={ghostBtn}>
+            Copy All
           </button>
         </div>
+
+        {copied && (
+          <div style={toast}>Copied to clipboard ✨</div>
+        )}
 
         {loading && (
           <div style={loaderWrap}>
@@ -272,7 +218,6 @@ export default function PresentationPage() {
                 ) : (
                   <div style={slideTitle}>{s.title}</div>
                 )}
-
                 <div style={bulletWrap}>
                   {s.bullets.map((b, j) =>
                     editing ? (
@@ -282,21 +227,13 @@ export default function PresentationPage() {
                           onChange={(e) => updateBullet(i, j, e.target.value)}
                           style={bulletInput}
                         />
-                        <button onClick={() => removeBullet(i, j)} style={chipBtn}>
-                          ✕
-                        </button>
+                        <button onClick={() => removeBullet(i, j)} style={chipBtn}>✕</button>
                       </div>
                     ) : (
-                      <div key={j} style={bulletStatic}>
-                        • {b}
-                      </div>
+                      <div key={j} style={bulletStatic}>• {b}</div>
                     )
                   )}
-                  {editing && (
-                    <button onClick={() => addBullet(i)} style={addBulletBtn}>
-                      + Add bullet
-                    </button>
-                  )}
+                  {editing && <button onClick={() => addBullet(i)} style={addBulletBtn}>+ Add bullet</button>}
                 </div>
               </div>
             ))}
@@ -308,142 +245,80 @@ export default function PresentationPage() {
   );
 }
 
-/* ============ Inline Styles ============ */
+/* === styles (unchanged) === */
 const page: React.CSSProperties = { minHeight: "100vh", background: "#0d0d0d", color: "#fff" };
 const container: React.CSSProperties = { maxWidth: 1200, margin: "0 auto", padding: "24px" };
 const header: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, marginBottom: 14 };
 const title: React.CSSProperties = {
-  fontSize: 26,
-  fontWeight: 800,
+  fontSize: 26, fontWeight: 800,
   background: "linear-gradient(90deg,#ff6ec7,#6ea8ff,#55f2c8)",
-  WebkitBackgroundClip: "text",
-  color: "transparent",
-  margin: 0,
+  WebkitBackgroundClip: "text", color: "transparent", margin: 0,
 };
 const backBtn: React.CSSProperties = {
-  background: "#1c1c1f",
-  border: "1px solid #31313a",
-  color: "#cfcfe6",
-  padding: "8px 12px",
-  borderRadius: 10,
-  cursor: "pointer",
+  background: "#1c1c1f", border: "1px solid #31313a", color: "#cfcfe6",
+  padding: "8px 12px", borderRadius: 10, cursor: "pointer",
 };
 const controlBar: React.CSSProperties = {
-  display: "flex",
-  gap: 10,
-  flexWrap: "wrap",
-  alignItems: "center",
-  marginBottom: 18,
+  display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 18,
 };
 const inputBox: React.CSSProperties = {
-  flex: 1,
-  minWidth: 260,
-  background: "linear-gradient(135deg,#111,#17171b)",
-  border: "1px solid #2d2d36",
-  color: "#e8e8f5",
-  padding: "12px 14px",
-  borderRadius: 12,
-  outline: "none",
+  flex: 1, minWidth: 260, background: "linear-gradient(135deg,#111,#17171b)",
+  border: "1px solid #2d2d36", color: "#e8e8f5", padding: "12px 14px",
+  borderRadius: 12, outline: "none",
 };
 const primaryBtn: React.CSSProperties = {
-  background: "linear-gradient(90deg,#00ffa8,#00c7ff)",
-  color: "#061014",
-  fontWeight: 800,
-  padding: "12px 14px",
-  border: "none",
-  borderRadius: 12,
-  cursor: "pointer",
+  background: "linear-gradient(90deg,#00ffa8,#00c7ff)", color: "#061014", fontWeight: 800,
+  padding: "12px 14px", border: "none", borderRadius: 12, cursor: "pointer",
 };
 const ghostBtn: React.CSSProperties = {
-  background: "#1b1b1f",
-  border: "1px solid #2f2f38",
-  color: "#d6d6e9",
-  padding: "12px 14px",
-  borderRadius: 12,
-  cursor: "pointer",
+  background: "#1b1b1f", border: "1px solid #2f2f38", color: "#d6d6e9",
+  padding: "12px 14px", borderRadius: 12, cursor: "pointer",
+};
+const toast: React.CSSProperties = {
+  position: "fixed", top: 20, right: 20, background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
+  color: "#000", padding: "10px 16px", borderRadius: 10, fontWeight: 700,
+  boxShadow: "0 4px 20px rgba(0,0,0,0.3)", transition: "opacity 0.3s ease",
 };
 const loaderWrap: React.CSSProperties = { display: "flex", justifyContent: "center", marginTop: 50 };
 const loaderCard: React.CSSProperties = {
-  width: "100%",
-  maxWidth: 640,
-  background: "linear-gradient(135deg,#111,#171822)",
-  border: "1px solid #2a2d3a",
-  borderRadius: 18,
-  padding: 20,
-  position: "relative",
-  overflow: "hidden",
-  boxShadow: "0 12px 40px rgba(0,0,0,0.45)",
+  width: "100%", maxWidth: 640, background: "linear-gradient(135deg,#111,#171822)",
+  border: "1px solid #2a2d3a", borderRadius: 18, padding: 20, position: "relative",
+  overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.45)",
 };
 const loaderGlow: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background:
-    "radial-gradient(600px 80px at 10% -10%,rgba(118,130,255,0.25),transparent), radial-gradient(600px 80px at 90% 120%,rgba(255,110,199,0.22),transparent)",
-  pointerEvents: "none",
+  position: "absolute", inset: 0,
+  background: "radial-gradient(600px 80px at 10% -10%,rgba(118,130,255,0.25),transparent), radial-gradient(600px 80px at 90% 120%,rgba(255,110,199,0.22),transparent)",
 };
 const loaderStep: React.CSSProperties = { fontSize: 18, fontWeight: 700, marginBottom: 12 };
 const progressBarOuter: React.CSSProperties = {
-  height: 10,
-  background: "#20212a",
-  borderRadius: 999,
-  overflow: "hidden",
-  border: "1px solid #2f3140",
+  height: 10, background: "#20212a", borderRadius: 999, overflow: "hidden", border: "1px solid #2f3140",
 };
 const progressBarInner: React.CSSProperties = {
-  height: "100%",
-  background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
-  transition: "width 600ms ease",
+  height: "100%", background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)", transition: "width 600ms ease",
 };
 const loaderHint: React.CSSProperties = { marginTop: 10, color: "#a8a8c2", fontSize: 13 };
 const deck: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill,minmax(420px,1fr))",
-  gap: 16,
+  display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(420px,1fr))", gap: 16,
 };
 const slideCard: React.CSSProperties = {
-  background: "linear-gradient(135deg,#101116,#141722)",
-  border: "1px solid #2c2f3d",
-  borderRadius: 18,
-  padding: 18,
-  minHeight: 220,
-  boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
+  background: "linear-gradient(135deg,#101116,#141722)", border: "1px solid #2c2f3d",
+  borderRadius: 18, padding: 18, minHeight: 220, boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
 };
 const slideTitle: React.CSSProperties = { fontSize: 20, fontWeight: 800, marginBottom: 10 };
 const slideTitleInput: React.CSSProperties = {
-  ...slideTitle,
-  background: "#0f1015",
-  color: "#fff",
-  border: "1px solid #2d3040",
-  borderRadius: 10,
-  padding: "10px 12px",
+  ...slideTitle, background: "#0f1015", color: "#fff",
+  border: "1px solid #2d3040", borderRadius: 10, padding: "10px 12px",
 };
 const bulletWrap: React.CSSProperties = { marginTop: 6, display: "flex", flexDirection: "column", gap: 8 };
 const bulletStatic: React.CSSProperties = { fontSize: 16, color: "#e4e4f2" };
 const bulletRow: React.CSSProperties = { display: "flex", gap: 8, alignItems: "center" };
 const bulletInput: React.CSSProperties = {
-  flex: 1,
-  background: "#0f1015",
-  color: "#e9e9ff",
-  border: "1px solid #2a2d3c",
-  borderRadius: 10,
-  padding: "8px 10px",
+  flex: 1, background: "#0f1015", color: "#e9e9ff", border: "1px solid #2a2d3c", borderRadius: 10, padding: "8px 10px",
 };
 const chipBtn: React.CSSProperties = {
-  background: "#2a2d3a",
-  border: "1px solid #3a3d4c",
-  color: "#dedeee",
-  padding: "6px 10px",
-  borderRadius: 10,
-  cursor: "pointer",
+  background: "#2a2d3a", border: "1px solid #3a3d4c", color: "#dedeee", padding: "6px 10px", borderRadius: 10, cursor: "pointer",
 };
-
 const addBulletBtn: React.CSSProperties = {
-  alignSelf: "flex-start",
-  background: "#1b1c22",
-  border: "1px solid #2e3040",
-  color: "#cfd0e6",
-  padding: "8px 10px",
-  borderRadius: 10,
-  cursor: "pointer",
+  alignSelf: "flex-start", background: "#1b1c22", border: "1px solid #2e3040", color: "#cfd0e6",
+  padding: "8px 10px", borderRadius: 10, cursor: "pointer",
 };
- 
