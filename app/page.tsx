@@ -44,7 +44,6 @@ export default function Home() {
 
       const data = await res.json();
 
-      // ✅ FIXED HERE: handles both string and object safely
       let safeQna = [];
       if (typeof data.qna === "string") {
         try {
@@ -128,6 +127,22 @@ export default function Home() {
         >
           {loading ? "Loading..." : "Generate Q&A"}
         </button>
+
+        {/* ✅ New Flashcards Button */}
+        <button
+          onClick={() => (window.location.href = "/flashcards")}
+          style={{
+            background: "#9b59b6",
+            color: "#fff",
+            padding: "10px 20px",
+            borderRadius: "6px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          Flashcards
+        </button>
       </div>
 
       <div
@@ -142,7 +157,14 @@ export default function Home() {
         }}
       >
         <h3>📘 Notes:</h3>
-        <div dangerouslySetInnerHTML={{ __html: notes.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>").replace(/## (.*?)\n/g, "<h3>$1</h3>").replace(/\n/g, "<br/>") }} />
+        <div
+          dangerouslySetInnerHTML={{
+            __html: notes
+              .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+              .replace(/## (.*?)\n/g, "<h3>$1</h3>")
+              .replace(/\n/g, "<br/>"),
+          }}
+        />
 
         {qna.length > 0 && (
           <>
