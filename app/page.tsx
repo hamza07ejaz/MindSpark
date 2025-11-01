@@ -102,12 +102,8 @@ export default function Home() {
             boxShadow: "0 0 15px rgba(0,191,255,0.4)",
             transition: "transform 0.2s, box-shadow 0.2s",
           }}
-          onMouseOver={(e) =>
-            (e.currentTarget.style.transform = "scale(1.05)")
-          }
-          onMouseOut={(e) =>
-            (e.currentTarget.style.transform = "scale(1)")
-          }
+          onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+          onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
           Q&A
         </button>
@@ -174,14 +170,30 @@ export default function Home() {
             boxShadow: "0 0 15px rgba(255,110,199,0.4)",
             transition: "transform 0.2s, box-shadow 0.2s",
           }}
-          onMouseOver={(e) =>
-            (e.currentTarget.style.transform = "scale(1.05)")
-          }
-          onMouseOut={(e) =>
-            (e.currentTarget.style.transform = "scale(1)")
-          }
+          onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+          onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
           Presentation
+        </button>
+
+        {/* ✅ Citation Button */}
+        <button
+          onClick={() => (window.location.href = "/citations")}
+          style={{
+            background: "linear-gradient(90deg, #27f0c8, #3aa3ff, #b575ff)",
+            color: "#000",
+            padding: "10px 20px",
+            borderRadius: "6px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+            boxShadow: "0 0 15px rgba(58,163,255,0.4)",
+            transition: "transform 0.2s, box-shadow 0.2s",
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+          onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
+        >
+          Citations
         </button>
       </div>
 
