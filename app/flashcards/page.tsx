@@ -57,7 +57,8 @@ export default function FlashcardsPage() {
         value={topic}
         onChange={(e) => setTopic(e.target.value)}
         placeholder="Enter a study topic..."
-        className="w-full max-w-md p-3 rounded-lg text-black outline-none mb-4"
+        className="w-full max-w-md p-3 rounded-lg outline-none mb-4 placeholder-gray-400"
+        style={{ backgroundColor: "#222", color: "#fff" }}
       />
 
       <button
