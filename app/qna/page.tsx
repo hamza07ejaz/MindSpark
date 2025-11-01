@@ -4,75 +4,69 @@ import { useState } from "react";
 
 export default function QnAPage() {
   const [input, setInput] = useState("");
-  const [result, setResult] = useState("");
+  const [qna, setQna] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleGenerateQnA = async () => {
     if (!input || input.trim() === "") {
-      alert("Please enter a study topic");
+      alert("Please enter a topic first!");
       return;
     }
 
-    setLoading(true);
-    setResult("");
-
     try {
-      const response = await fetch("https://mindspark-beta.vercel.app/api/generate-qna", {
+      setLoading(true);
+      const response = await fetch("/api/generate-qna", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          topic: input,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: input }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API Error:", errorData);
-        alert("Failed to generate Q&A. Please try again.");
-        setLoading(false);
-        return;
-      }
-
       const data = await response.json();
-      setResult(data.result || "No Q&A found.");
-    } catch (error) {
-      console.error("Network error:", error);
-      alert("Something went wrong. Please try again.");
-    }
 
-    setLoading(false);
+      if (response.ok) {
+        setQna(data.result);
+      } else {
+        console.error("Error:", data.error);
+        alert("Failed to generate Q&A. Please try again.");
+      }
+    } catch (error) {
+      console.error("QnA generation error:", error);
+      alert("Something went wrong. Try again later.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div
       style={{
-        minHeight: "100vh",
-        backgroundColor: "black",
-        color: "white",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
+        minHeight: "100vh",
+        background: "linear-gradient(to bottom right, #000000, #0f2027)",
+        color: "white",
         padding: "20px",
       }}
     >
-      <h1 style={{ fontSize: "2rem", marginBottom: "20px" }}>💡 MindSpark – Generate Q&A</h1>
+      <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>
+        MindSpark – AI Q&A Generator
+      </h1>
 
       <input
         type="text"
+        placeholder="Enter your study topic..."
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        placeholder="Enter your study topic..."
         style={{
           width: "100%",
           maxWidth: "500px",
           padding: "10px",
           borderRadius: "8px",
-          border: "1px solid gray",
-          color: "black",
+          border: "none",
           marginBottom: "20px",
+          fontSize: "1rem",
         }}
       />
 
@@ -80,35 +74,35 @@ export default function QnAPage() {
         onClick={handleGenerateQnA}
         disabled={loading}
         style={{
-          backgroundColor: loading ? "#555" : "#2563eb",
+          backgroundColor: "#0070f3",
           color: "white",
+          padding: "10px 20px",
           border: "none",
-          padding: "12px 24px",
           borderRadius: "8px",
           cursor: "pointer",
           fontSize: "1rem",
+          marginBottom: "30px",
         }}
       >
         {loading ? "Generating..." : "Generate Q&A"}
       </button>
 
-      <div
-        style={{
-          marginTop: "40px",
-          maxWidth: "700px",
-          width: "100%",
-          whiteSpace: "pre-wrap",
-          textAlign: "left",
-          lineHeight: "1.6",
-        }}
-      >
-        {result && (
-          <>
-            <h2 style={{ fontSize: "1.5rem", marginBottom: "10px" }}>Generated Q&A:</h2>
-            <p>{result}</p>
-          </>
-        )}
-      </div>
+      {qna && (
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "700px",
+            backgroundColor: "#111",
+            padding: "20px",
+            borderRadius: "10px",
+            whiteSpace: "pre-wrap",
+            fontSize: "1rem",
+            lineHeight: "1.5",
+          }}
+        >
+          {qna}
+        </div>
+      )}
     </div>
   );
 }
