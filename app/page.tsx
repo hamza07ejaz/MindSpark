@@ -95,7 +95,15 @@ export default function Home() {
         }}
       />
 
-      <div style={{ marginTop: "15px", display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+      <div
+        style={{
+          marginTop: "15px",
+          display: "flex",
+          gap: "10px",
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
+      >
         <button
           onClick={handleGenerateNotes}
           disabled={loading}
@@ -143,7 +151,6 @@ export default function Home() {
           Flashcards
         </button>
 
-        {/* ✅ New Test Button */}
         <button
           onClick={() => (window.location.href = "/test")}
           style={{
@@ -157,6 +164,22 @@ export default function Home() {
           }}
         >
           Test
+        </button>
+
+        {/* ✅ New Visual Map Button */}
+        <button
+          onClick={() => (window.location.href = "/visual-map")}
+          style={{
+            background: "#00ced1",
+            color: "#fff",
+            padding: "10px 20px",
+            borderRadius: "6px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          Visual Map
         </button>
       </div>
 
