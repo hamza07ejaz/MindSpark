@@ -1,20 +1,20 @@
 "use client";
 import { useState } from "react";
 
-export default function QnAPage() {
+export default function QnaPage() {
   const [topic, setTopic] = useState("");
-  const [qna, setQna] = useState<{ question: string; answer: string }[]>([]);
+  const [qna, setQna] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const generateQnA = async () => {
+  const handleGenerateQna = async () => {
     if (!topic.trim()) {
       setError("Please enter a topic first.");
       return;
     }
-    setLoading(true);
     setError("");
+    setLoading(true);
     setQna([]);
 
     try {
@@ -23,83 +23,208 @@ export default function QnAPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic }),
       });
-      const data = await res.json();
 
-      if (res.ok && Array.isArray(data.qna)) {
-        setQna(data.qna);
-      } else {
-        setError(data.error || "Failed to generate Q&A.");
+      const data = await res.json();
+      if (data.error) {
+        setError("Error generating Q&A. Try again.");
+        return;
       }
+
+      let safeQna = [];
+      if (typeof data.qna === "string") {
+        try {
+          safeQna = JSON.parse(data.qna);
+        } catch {
+          safeQna = [];
+        }
+      } else if (Array.isArray(data.qna)) {
+        safeQna = data.qna;
+      }
+
+      setQna(safeQna);
     } catch (err) {
       console.error(err);
-      setError("Server error while generating Q&A.");
+      setError("Something went wrong.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCopy = async () => {
-    const text = qna
-      .map((item, i) => `Q${i + 1}: ${item.question}\nA: ${item.answer}\n`)
-      .join("\n");
-    await navigator.clipboard.writeText(text);
+  const handleCopy = () => {
+    if (qna.length === 0) return;
+    const formatted = qna
+      .map((item, i) => `Q${i + 1}: ${item.question}\nA: ${item.answer}`)
+      .join("\n\n");
+    navigator.clipboard.writeText(formatted);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white flex flex-col items-center px-6 py-10">
-      <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-500 to-blue-400 bg-clip-text text-transparent drop-shadow-lg">
+    <main
+      style={{
+        background: "#0d0d0d",
+        color: "#fff",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "40px 20px",
+        fontFamily: "Inter, sans-serif",
+      }}
+    >
+      <h1
+        style={{
+          fontSize: "2.2rem",
+          background: "linear-gradient(90deg, #8a2be2, #00bfff)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          fontWeight: "bold",
+          marginBottom: "25px",
+          textAlign: "center",
+        }}
+      >
         AI Q&A Generator
       </h1>
 
+      {/* Topic Input Bar */}
       <input
+        type="text"
         value={topic}
         onChange={(e) => setTopic(e.target.value)}
-        placeholder="Enter your study topic..."
-        className="w-full max-w-lg p-3 rounded-lg text-black outline-none mb-4"
+        placeholder="Enter your topic..."
+        style={{
+          width: "80%",
+          maxWidth: "600px",
+          padding: "12px 16px",
+          borderRadius: "8px",
+          border: "none",
+          outline: "none",
+          fontSize: "1rem",
+          marginBottom: "20px",
+          background: "#1a1a1a",
+          color: "#fff",
+          textAlign: "center",
+        }}
       />
 
-      <button
-        onClick={generateQnA}
-        disabled={loading}
-        className="bg-blue-500 hover:bg-blue-600 px-6 py-2 rounded-lg font-semibold transition"
+      {/* Buttons Section */}
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          justifyContent: "center",
+          flexWrap: "wrap",
+          marginBottom: "20px",
+        }}
       >
-        {loading ? "Generating..." : "Generate Q&A"}
-      </button>
+        {/* Generate Q&A */}
+        <button
+          onClick={handleGenerateQna}
+          disabled={loading}
+          style={{
+            background: "linear-gradient(90deg, #007bff, #00bfff)",
+            color: "#fff",
+            padding: "12px 28px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "1rem",
+            boxShadow: "0 0 15px rgba(0,191,255,0.4)",
+            transition: "transform 0.2s, box-shadow 0.2s",
+          }}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.transform = "scale(1.05)")
+          }
+          onMouseOut={(e) =>
+            (e.currentTarget.style.transform = "scale(1)")
+          }
+        >
+          {loading ? "Generating..." : "Generate Q&A"}
+        </button>
 
-      {error && <p className="text-red-400 mt-3">{error}</p>}
+        {/* Copy Button */}
+        <button
+          onClick={handleCopy}
+          disabled={qna.length === 0}
+          style={{
+            background: "linear-gradient(90deg, #00ff88, #00bfff)",
+            color: "#000",
+            padding: "12px 24px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: qna.length === 0 ? "not-allowed" : "pointer",
+            fontWeight: "bold",
+            fontSize: "1rem",
+            opacity: qna.length === 0 ? 0.6 : 1,
+            transition: "all 0.2s ease",
+          }}
+        >
+          {copied ? "Copied!" : "Copy Q&A"}
+        </button>
 
-      {qna.length > 0 && (
-        <div className="mt-10 w-full max-w-2xl space-y-6">
-          {qna.map((item, i) => (
-            <div
-              key={i}
-              className="bg-gray-900/70 p-5 rounded-2xl border border-gray-700 shadow-[0_0_15px_rgba(59,130,246,0.2)]"
-            >
-              <p className="text-lg font-semibold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                Q{i + 1}. {item.question}
-              </p>
-              <p className="text-gray-200 mt-2 leading-relaxed">{item.answer}</p>
-            </div>
-          ))}
+        {/* Go Back Button */}
+        <button
+          onClick={() => (window.location.href = "/")}
+          style={{
+            background: "linear-gradient(90deg, #ff5f6d, #ffc371)",
+            color: "#fff",
+            padding: "12px 24px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "1rem",
+            transition: "transform 0.2s",
+          }}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.transform = "scale(1.05)")
+          }
+          onMouseOut={(e) =>
+            (e.currentTarget.style.transform = "scale(1)")
+          }
+        >
+          Go Back
+        </button>
+      </div>
 
-          <div className="flex gap-4 mt-8 justify-center">
-            <button
-              onClick={handleCopy}
-              className="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded-lg font-semibold"
-            >
-              {copied ? "✅ Copied!" : "Copy All Q&A"}
-            </button>
-            <button
-              onClick={() => (window.location.href = "/")}
-              className="bg-green-500 hover:bg-green-600 px-6 py-2 rounded-lg font-semibold"
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
+      {error && (
+        <p style={{ color: "#ff4d4d", marginTop: "5px" }}>{error}</p>
       )}
-    </div>
+
+      {/* Q&A Results */}
+      <div
+        style={{
+          marginTop: "30px",
+          width: "90%",
+          maxWidth: "800px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "15px",
+        }}
+      >
+        {qna.map((item, index) => (
+          <div
+            key={index}
+            style={{
+              background: "linear-gradient(135deg, #1a1a1a, #222)",
+              border: "1px solid #333",
+              borderRadius: "10px",
+              padding: "16px 20px",
+              boxShadow: "0 0 10px rgba(0,191,255,0.2)",
+              transition: "transform 0.2s ease",
+            }}
+          >
+            <p style={{ fontWeight: "bold", color: "#00bfff" }}>
+              Q{index + 1}: {item.question}
+            </p>
+            <p style={{ marginTop: "6px", color: "#ccc" }}>
+              {item.answer}
+            </p>
+          </div>
+        ))}
+      </div>
+    </main>
   );
 }
