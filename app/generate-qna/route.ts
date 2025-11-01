@@ -23,7 +23,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content:
-            "You are a helpful study assistant that creates 5 clear and detailed Q&A pairs for students.",
+            "You are a helpful study assistant that generates 5 clear and educational Q&A pairs for students.",
         },
         {
           role: "user",
