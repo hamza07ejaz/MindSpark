@@ -1,63 +1,60 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   try {
     const { topic } = await req.json();
-
-    if (!topic || topic.trim() === "") {
-      return NextResponse.json({ error: "Topic is required." }, { status: 400 });
+    if (!topic) {
+      return NextResponse.json(
+        { error: "Missing topic." },
+        { status: 400 }
+      );
     }
 
     const prompt = `
-You are an expert educator and concept visualizer.  
-Create a structured, multi-layer AI knowledge map about the topic "${topic}".  
-Show clear cause–effect–importance relationships and organize the ideas visually (like a mind map).  
-Generate 10–15 nodes with short, meaningful titles that help students instantly understand the key ideas.  
-Example node categories to include (if relevant):  
-- Definition / Core Concept  
-- Causes / Background  
-- Effects / Impact  
-- Importance / Significance  
-- Key Figures / Entities  
-- Applications / Modern Relevance  
-- Examples / Case Studies  
-- Future Outlook  
-- Connections to Other Topics  
-
-Return the result **only** as JSON in this structure:
+Generate a structured JSON object for an AI knowledge map about "${topic}".
+Each node must include:
+- id (unique short id)
+- label (concept title)
+- details (2-3 sentence explanation)
+Also return edges connecting them logically.
+Example format:
 {
-  "concepts": [
-    { "title": "Definition of AI" },
-    { "title": "History and Evolution" },
-    { "title": "Key Technologies" },
-    { "title": "Applications in Healthcare" },
-    { "title": "Ethical Challenges" }
-  ]
+  "nodes": [
+    {"id":"1","label":"Causes","details":"The main reasons ..."},
+    {"id":"2","label":"Effects","details":"The consequences ..."}
+  ],
+  "edges":[{"from":"1","to":"2"}]
 }
-    `;
+`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
+      temperature: 0.8,
     });
 
-    const raw = completion.choices[0]?.message?.content || "";
-    const jsonText = raw
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+    const text = completion.choices[0]?.message?.content?.trim() || "";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return NextResponse.json(
+        { error: "Invalid model output." },
+        { status: 500 }
+      );
+    }
 
-    const parsed = JSON.parse(jsonText);
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
+      throw new Error("Bad response shape.");
+    }
+
     return NextResponse.json(parsed);
-  } catch (error: any) {
-    console.error("Error in visual map generation:", error);
+  } catch (err: any) {
+    console.error("visual-map API error:", err);
     return NextResponse.json(
-      { error: "Failed to generate visual map." },
+      { error: err.message || "Internal error." },
       { status: 500 }
     );
   }
