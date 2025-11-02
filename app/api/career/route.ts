@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
+  apiKey: process.env.OPENAI_API_KEY || "",
 });
 
 export async function POST(req: Request) {
@@ -11,83 +11,133 @@ export async function POST(req: Request) {
 
     let prompt = "";
 
+    // === Build prompt based on mode ===
     if (mode === "opt1") {
       prompt = `
-You are an expert career advisor. The user wants to become a ${role}.
-Create a professional step-by-step roadmap including:
-1. Short description of the career and why it matters
-2. Skills and knowledge required
-3. Education or certifications needed
-4. 12-month plan (divide into quarters)
-5. First job roles and pay range
-6. Fast-track strategies
-
-Make the content concise, inspiring, and formatted in bullet points.
+You are a world-class career mentor. The user wants to become a ${role}.
+Create a full professional roadmap including:
+1. Description of this career
+2. Skills & education needed
+3. 12-month learning roadmap (Q1–Q4)
+4. Entry-level job titles & salary
+5. Long-term success tips
+Keep it inspiring and clear.
       `;
     } else if (mode === "opt2") {
       prompt = `
-You are a career counselor. Based on these answers, suggest 3 potential careers:
+You are a friendly career counselor. Here are the user's answers:
 ${JSON.stringify(answers, null, 2)}
-
-For each career, include:
-1. Why it matches the user's interests
-2. What they need to study or learn
-3. Step-by-step plan to start
-4. Add motivational closing.
-
-Format clearly with headers for each career.
+Based on these, suggest 3 career paths that fit their personality.
+For each path:
+1. Short description
+2. Why it's a match
+3. What to learn
+4. Steps to start
+5. Motivational note
       `;
     } else if (mode === "opt3") {
       prompt = `
-You are a business mentor. The user wants to earn side income. Here are their answers:
+You are an expert side-income coach. The user wants to earn part-time. Answers:
 ${JSON.stringify(answers, null, 2)}
-
-Suggest 3 personalized, realistic side income ideas based on their situation.
-For each idea, include:
-1. What it is and how it works
-2. How to start immediately
-3. Potential monthly earning
-4. Steps to scale it up
-5. Bonus tip.
-
-Keep it motivating, practical, and formatted cleanly.
+Suggest 3 income ideas that are realistic and fun.
+For each:
+1. What it is
+2. How to start today
+3. How much they can earn
+4. How to grow it
+5. Bonus tip
       `;
     } else {
-      return NextResponse.json(
-        { error: "Invalid mode" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
     }
 
-    // Call OpenAI
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a professional career and business coach generating clear, structured results.",
-        },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.8,
-    });
+    // === Try AI call ===
+    let text = "";
+    try {
+      const res = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a professional career and income advisor who writes clear, structured plans with headings.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.8,
+      });
+      text = res.choices[0].message?.content || "";
+    } catch (err) {
+      console.warn("AI call failed, using fallback data");
+    }
 
-    const text = completion.choices[0].message?.content || "";
+    // === Fallback ===
+    if (!text) {
+      if (mode === "opt1") {
+        text = `
+Career Goal: ${role}
 
-    // Split into blocks for display
+Step 1: Learn the basics – Study free resources on YouTube, Coursera, or books.
+Step 2: Build foundation – Practice projects, join communities.
+Step 3: Gain credibility – Take a certification or course.
+Step 4: Build portfolio – Showcase small achievements.
+Step 5: Apply for internships or freelance roles.
+Step 6: Grow by networking, reading, and sharing your work.
+      `;
+      } else if (mode === "opt2") {
+        text = `
+Possible Careers Based on Your Answers:
+
+1. Digital Marketing
+   - Uses creativity and strategy.
+   - Learn SEO, content, ads.
+   - Start with freelancing or small projects.
+
+2. Software Development
+   - Great for logical thinkers.
+   - Learn coding basics, build small apps.
+   - Start with internships or open-source work.
+
+3. Business & Sales
+   - Perfect for communicators.
+   - Learn persuasion, cold outreach, and business.
+   - Start selling products or services locally.
+      `;
+      } else if (mode === "opt3") {
+        text = `
+Side Income Ideas:
+
+1. Freelance Design or Writing
+   - Use Fiverr or Upwork.
+   - Start free, then scale your clients.
+
+2. Tutoring or Teaching
+   - Teach what you know online.
+   - Platforms: Preply, Wyzant, YouTube.
+
+3. Social Media Services
+   - Help small businesses manage TikTok or Instagram.
+   - Start with 2–3 clients and grow from there.
+      `;
+      }
+    }
+
+    // === Format output ===
     const blocks = text
-      .split(/\n(?=[A-Z][^\n]{3,}:|###|1\.|Career|Idea|Step)/)
-      .filter((b) => b.trim().length > 10)
+      .split(/\n(?=[A-Z0-9#*].{3,}:|Career|Step|Idea|1\.|###)/)
+      .filter((b) => b.trim().length > 5)
       .map((b) => {
         const lines = b.trim().split("\n");
         const title = lines.shift() || "Section";
-        return { title: title.replace(/[#*]/g, "").trim(), body: lines.join("\n").trim() };
+        return {
+          title: title.replace(/[#*]/g, "").trim(),
+          body: lines.join("\n").trim(),
+        };
       });
 
     return NextResponse.json({ blocks });
   } catch (err) {
-    console.error(err);
+    console.error("Fatal error:", err);
     return NextResponse.json(
       { error: "Failed to generate career guidance" },
       { status: 500 }
