@@ -77,11 +77,11 @@ export default function StudyPlanPage() {
           style={inputStyle}
         />
         <input
-          type="date"
-          value={examDate}
-          onChange={(e) => setExamDate(e.target.value)}
-          style={inputStyle}
-        />
+  value={examDate}
+  onChange={(e) => setExamDate(e.target.value)}
+  placeholder="Enter how many days you have to study (e.g., 30)"
+  style={inputStyle}
+/>
         <input
           value={hoursPerDay}
           onChange={(e) => setHoursPerDay(e.target.value)}
