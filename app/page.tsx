@@ -247,6 +247,25 @@ export default function Home() {
 >
   Paraphraser
 </button>
+        {/* ✅ Career Help Button */}
+<button
+  onClick={() => (window.location.href = "/career")}
+  style={{
+    background: "linear-gradient(90deg, #ff9a9e, #fad0c4)",
+    color: "#000",
+    padding: "10px 22px",
+    borderRadius: "6px",
+    border: "none",
+    cursor: "pointer",
+    fontWeight: "bold",
+    boxShadow: "0 0 15px rgba(255,154,158,0.5)",
+    transition: "transform 0.2s, box-shadow 0.2s",
+  }}
+  onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+  onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
+>
+  Career Help
+</button>
         <h3>📘 Notes:</h3>
         <div
           dangerouslySetInnerHTML={{
