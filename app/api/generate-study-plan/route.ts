@@ -10,12 +10,12 @@ export async function POST(req: Request) {
     const { subject, examDate, hoursPerDay } = await req.json();
 
     const prompt = `
-You are an AI study planner. Create a detailed, structured daily study plan for the topic "${subject}".
-The exam date is ${examDate}, and the student has ${hoursPerDay} hours per day to study.
-The plan should include specific topics or subtopics for each day, review days, and breaks.
-Format it neatly and clearly with days as headings and bullet points under each.
+You are an AI study planner. Create a detailed, structured ${examDate}-day study plan for the topic "${subject}".
+The student has ${hoursPerDay} hours per day to study.
+The plan should include daily goals, specific topics, review days, and short motivational reminders.
+Format it neatly and clearly with "Day 1", "Day 2", etc. as headings and bullet points under each.
 Make it motivational but realistic.
-    `;
+`;
 
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
