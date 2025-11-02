@@ -266,6 +266,25 @@ export default function Home() {
 >
   Career Help
 </button>
+        {/* ✅ Study Plan Button */}
+<button
+  onClick={() => (window.location.href = "/study-plan")}
+  style={{
+    background: "linear-gradient(90deg, #ffcc70, #ff8177)",
+    color: "#000",
+    padding: "10px 20px",
+    borderRadius: "6px",
+    border: "none",
+    cursor: "pointer",
+    fontWeight: "bold",
+    boxShadow: "0 0 15px rgba(255,204,112,0.4)",
+    transition: "transform 0.2s, box-shadow 0.2s",
+  }}
+  onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+  onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
+>
+  Study Plan
+</button>
         <h3>📘 Notes:</h3>
         <div
           dangerouslySetInnerHTML={{
