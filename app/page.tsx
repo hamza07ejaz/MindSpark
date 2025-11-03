@@ -67,29 +67,52 @@ export default function Home() {
           MindSpark
         </h2>
 
-        <nav style={{ display: "flex", gap: "30px" }}>
-          {["Home", "Dashboard", "Pricing", "Login"].map((item) => (
-            <p
-              key={item}
-              onClick={() =>
-                (window.location.href =
-                  item === "Home"
-                    ? "/"
-                    : "/" + item.toLowerCase())
-              }
-              style={{
-                cursor: "pointer",
-                fontWeight: 600,
-                color: "#cfcfe6",
-                transition: "0.2s",
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.color = "#fff")}
-              onMouseOut={(e) => (e.currentTarget.style.color = "#cfcfe6")}
-            >
-              {item}
-            </p>
-          ))}
-        </nav>
+        {/* 3-dot vertical menu icon */}
+        <div
+          onClick={() => (window.location.href = "/menu")}
+          style={{
+            cursor: "pointer",
+            display: "flex",
+            flexDirection: "column",
+            gap: "5px",
+            padding: "10px",
+            borderRadius: "10px",
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            transition: "0.2s",
+          }}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.background = "rgba(255,255,255,0.12)")
+          }
+          onMouseOut={(e) =>
+            (e.currentTarget.style.background = "rgba(255,255,255,0.05)")
+          }
+        >
+          <div
+            style={{
+              width: "5px",
+              height: "5px",
+              background: "#fff",
+              borderRadius: "50%",
+            }}
+          />
+          <div
+            style={{
+              width: "5px",
+              height: "5px",
+              background: "#fff",
+              borderRadius: "50%",
+            }}
+          />
+          <div
+            style={{
+              width: "5px",
+              height: "5px",
+              background: "#fff",
+              borderRadius: "50%",
+            }}
+          />
+        </div>
       </header>
 
       {/* ---- HERO / TOOL ---- */}
@@ -253,8 +276,7 @@ export default function Home() {
         <div
           style={{
             height: "3px",
-            background:
-              "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
+            background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
             borderRadius: "999px",
             width: "80%",
             margin: "0 auto 25px auto",
