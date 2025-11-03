@@ -64,7 +64,7 @@ export default function Home() {
           }}
           onClick={() => (window.location.href = "/")}
         >
-          MindSpark
+          Eluna Mind
         </h2>
 
         {/* 3-dot vertical menu icon */}
@@ -293,7 +293,7 @@ export default function Home() {
           <a href="/terms" style={{ color: "#6ea8ff", textDecoration: "none" }}>
             Terms
           </a>{" "}
-          | © {new Date().getFullYear()} MindSpark Inc.
+          | © {new Date().getFullYear()} Eluna Mind Inc.
         </p>
       </footer>
     </main>
