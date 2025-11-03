@@ -68,6 +68,25 @@ export default function FlashcardsPage() {
       >
         {loading ? "Generating..." : "Generate Flashcards"}
       </button>
+      <button
+  onClick={() => (window.location.href = "/")}
+  style={{
+    marginTop: "40px",
+    background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
+    color: "#000",
+    fontWeight: "bold",
+    padding: "12px 26px",
+    borderRadius: "10px",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "16px",
+    transition: "0.25s",
+  }}
+  onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+  onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
+>
+  ← Go Back
+</button>
 
       {error && <p className="text-red-400 mt-3">{error}</p>}
 
