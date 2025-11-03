@@ -3,7 +3,7 @@
 export default function MenuPage() {
   const links = [
     { name: "Pricing", link: "/pricing" },
-    { name: "Sign Up / Login", link: "/login" },
+    { name: "Sign Up / Login", link: "/auth" },
     { name: "Help & Support", link: "/support" },
     { name: "About", link: "/about" },
   ];
