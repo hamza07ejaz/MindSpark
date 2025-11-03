@@ -1,10 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  { auth: { persistSession: true } }
 );
 
 export default function AuthPage() {
@@ -12,6 +13,17 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // if user already logged in, send to home
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) window.location.href = "/";
+    };
+    checkSession();
+  }, []);
 
   const handleAuth = async (e: any) => {
     e.preventDefault();
@@ -22,9 +34,12 @@ export default function AuthPage() {
         if (error) throw error;
         alert("Check your email to confirm your account!");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
         if (error) throw error;
-        window.location.href = "/";
+        window.location.href = "/"; // redirect after login
       }
     } catch (err: any) {
       alert(err.message || "Something went wrong.");
