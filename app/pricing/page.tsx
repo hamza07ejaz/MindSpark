@@ -17,7 +17,7 @@ export default function PricingPage() {
     },
     {
       name: "Premium",
-      price: "$14.99 / month",
+      price: "$15.99 / month",
       features: [
         "Unlimited Notes & Q&A",
         "Access to all tools (Flashcards, Test, Visual Map, Presentation, Career Help, Paraphrasing, Grammar, Citations)",
