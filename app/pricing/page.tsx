@@ -9,7 +9,6 @@ export default function PricingPage() {
       features: [
         "2 Notes per day",
         "1 Q&A per day",
-        "Basic grammar help",
         "Access to Free Study Plan",
       ],
       color: "linear-gradient(90deg,#3aa3ff,#b575ff)",
