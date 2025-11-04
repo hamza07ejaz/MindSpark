@@ -29,6 +29,30 @@ export default function PricingPage() {
     },
   ];
 
+  // handle upgrade logic
+  const handleUpgrade = async (planName) => {
+    if (planName === "Free") {
+      alert("Free plan selected");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+      });
+      const session = await response.json();
+
+      if (session.url) {
+        window.location.href = session.url;
+      } else {
+        alert("Unable to start checkout session");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Something went wrong. Please try again.");
+    }
+  };
+
   return (
     <main
       style={{
@@ -116,7 +140,7 @@ export default function PricingPage() {
               ))}
             </ul>
             <button
-              onClick={() => alert(`${plan.name} plan selected`)}
+              onClick={() => handleUpgrade(plan.name)}
               style={{
                 background: plan.color,
                 color: "#000",
