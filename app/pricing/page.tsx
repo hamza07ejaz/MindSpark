@@ -30,7 +30,7 @@ export default function PricingPage() {
   ];
 
   // handle upgrade logic
-  const handleUpgrade = async (planName) => {
+  const handleUpgrade = async (planName: string) => {
     if (planName === "Free") {
       alert("Free plan selected");
       return;
