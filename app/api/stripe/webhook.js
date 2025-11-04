@@ -34,6 +34,15 @@ export default async function handler(req, res) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
+const email = session.customer_email;
+
+if (email) {
+  await supabase
+    .from("profiles")
+    .update({ plan: "premium" })
+    .eq("email", email);
+}
+    const session = event.data.object;
     const email = session.customer_email;
 
     await supabase
