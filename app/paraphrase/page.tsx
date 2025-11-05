@@ -278,7 +278,7 @@ export default function Paraphraser() {
             now to unlock unlimited paraphrasing and advanced features.
           </p>
           <button
-            onClick={() => (window.location.href = "/premium")}
+            onClick={() => (window.location.href = "/pricing")}
             style={{
               background:
                 "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
