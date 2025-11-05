@@ -1,6 +1,5 @@
 "use client";
-import { useMemo, useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { useMemo, useState } from "react";
 
 type Stage = "landing" | "opt1" | "opt2" | "opt3" | "result";
 type ResultBlock = { title: string; body: string };
@@ -10,44 +9,11 @@ export default function CareerHelpPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResultBlock[] | null>(null);
   const [copied, setCopied] = useState(false);
-  const [plan, setPlan] = useState<string | null>(null);
-  const [checking, setChecking] = useState(true);
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-  useEffect(() => {
-    const checkPlan = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setPlan("free");
-          setChecking(false);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("plan")
-          .eq("id", user.id)
-          .single();
-
-        if (error || !data) setPlan("free");
-        else setPlan(data.plan);
-      } catch (err) {
-        console.error(err);
-        setPlan("free");
-      } finally {
-        setChecking(false);
-      }
-    };
-    checkPlan();
-  }, []);
-
-  // ---------- your original logic ----------
+  // option 1 state
   const [dreamRole, setDreamRole] = useState("");
+
+  // option 2 state (don’t know what to become)
   const q2 = useMemo(
     () => [
       { key: "strengths", label: "Your top strengths or subjects you enjoy", type: "text" },
@@ -62,6 +28,8 @@ export default function CareerHelpPage() {
     []
   );
   const [a2, setA2] = useState<Record<string, string>>({});
+
+  // option 3 state (side income)
   const q3 = useMemo(
     () => [
       { key: "target", label: "How much do you want to earn monthly (USD/CAD)", type: "text" },
@@ -88,39 +56,51 @@ export default function CareerHelpPage() {
           return data.blocks as ResultBlock[];
         }
       }
-    } catch {}
+    } catch {
+      // fall through to fallback
+    }
     return fallbackGenerate(payload);
   }
 
   function fallbackGenerate(payload: any): ResultBlock[] {
-    // (your entire fallbackGenerate logic untouched)
-    // ---------------------------
     if (payload.mode === "opt1") {
       const role = payload.role?.trim() || "Your Target Role";
       return [
         {
           title: `${role}: overview`,
-          body: `Why this role matters, typical mission, where it fits in the industry. Common entry titles and growth paths.`,
+          body:
+            `Why this role matters, typical mission, where it fits in the industry. ` +
+            `Common entry titles and growth paths.`,
         },
         {
           title: "skills and knowledge",
-          body: `Core skills to master, tools and frameworks, proof-of-work ideas (build a portfolio, mini-projects, internships).`,
+          body:
+            `Core skills to master, tools and frameworks, proof-of-work ideas ` +
+            `(build a portfolio, mini-projects, internships).`,
         },
         {
           title: "education and credentials",
-          body: `Suggested courses, certificates, degree preferences (if needed), free and paid learning tracks you can finish in stages.`,
+          body:
+            `Suggested courses, certificates, degree preferences (if needed), ` +
+            `free and paid learning tracks you can finish in stages.`,
         },
         {
           title: "12-month action plan",
-          body: `Quarter by quarter plan: Q1 learn foundations, Q2 build 2 projects, Q3 internship/volunteer, Q4 job search system with targets.`,
+          body:
+            `Quarter by quarter plan: Q1 learn foundations, Q2 build 2 projects, ` +
+            `Q3 internship/volunteer, Q4 job search system with targets.`,
         },
         {
           title: "first role and compensation",
-          body: `Starter job titles, realistic comp range for your region, how to negotiate and level up in 6-12 months.`,
+          body:
+            `Starter job titles, realistic comp range for your region, ` +
+            `how to negotiate and level up in 6-12 months.`,
         },
         {
           title: "fast-track ideas",
-          body: `Mentor outreach, competitions, certifications with high signal, public build-in-public showcasing to stand out.`,
+          body:
+            `Mentor outreach, competitions, certifications with high signal, ` +
+            `public build-in-public showcasing to stand out.`,
         },
       ];
     }
@@ -130,33 +110,78 @@ export default function CareerHelpPage() {
       const creative = s("workStyle").includes("creativ");
       const people = s("peopleVsTech").includes("people");
       const tech = s("peopleVsTech").includes("tech");
+
       const recs: string[] = [];
       if (tech || analytical) recs.push("Data Analyst / Product Analyst");
       if (creative) recs.push("UX/UI Designer");
       if (people) recs.push("Customer Success or Partnerships");
       if (s("impact").includes("health")) recs.push("Health Informatics Specialist");
       if (recs.length === 0) recs.push("Operations Coordinator");
+
       return [
-        { title: "top matches", body: recs.join(" | ") },
-        { title: "why these fit", body: "Based on your strengths, work style, study horizon, and impact preferences, these paths balance day-to-day fit with long-term opportunity." },
-        { title: "how to start in 30 days", body: "Micro-curriculum with 3–5 resources, 2 small portfolio artifacts, and a repeatable networking script to land first interviews." },
-        { title: "next steps", body: "Pick one track, commit to a 4-week sprint, then reassess." },
+        {
+          title: "top matches",
+          body: recs.join(" | "),
+        },
+        {
+          title: "why these fit",
+          body:
+            `Based on your strengths, work style, study horizon, and impact preferences, ` +
+            `these paths balance day-to-day fit with long-term opportunity.`,
+        },
+        {
+          title: "how to start in 30 days",
+          body:
+            `Micro-curriculum with 3–5 resources, 2 small portfolio artifacts, ` +
+            `and a repeatable networking script to land first interviews.`,
+        },
+        {
+          title: "next steps",
+          body:
+            `Pick one track, commit to a 4-week sprint, then reassess. ` +
+            `Ask me to generate another path if this doesn’t excite you, ` +
+            `or ask for a step-by-step plan for your favorite option.`,
+        },
       ];
     }
+    // opt3
     const online = String(payload.answers?.online || "").toLowerCase().includes("online");
     const skills = String(payload.answers?.skills || "").toLowerCase();
     const dev = skills.includes("code") || skills.includes("python") || skills.includes("web");
     const design = skills.includes("design") || skills.includes("ui") || skills.includes("graphics");
     const writing = skills.includes("write") || skills.includes("content");
+
     const ideas: string[] = [];
     if (dev) ideas.push("Build micro-tools or Notion templates and sell on Gumroad");
     if (design) ideas.push("Offer ‘1-day landing page’ packages to local businesses");
     if (writing) ideas.push("Niche newsletter with affiliate offers");
-    if (ideas.length === 0) ideas.push(online ? "Remote research gigs" : "Local high-ROI errands concierge");
+    if (ideas.length === 0) {
+      ideas.push(online ? "Remote research gigs on specialized platforms" : "Local high-ROI errands concierge");
+    }
+
     return [
-      { title: "side income ideas", body: ideas.join(" | ") },
-      { title: "today’s setup", body: "Define offer, simple landing, single payment link, delivery workflow." },
-      { title: "scaling path", body: "Package into repeatable service, collect testimonials, run focused outreach." },
+      {
+        title: "side income ideas",
+        body: ideas.join(" | "),
+      },
+      {
+        title: "today’s setup",
+        body:
+          `Define offer, simple landing, single payment link, delivery workflow. ` +
+          `Goal is first proof of payment in 72 hours.`,
+      },
+      {
+        title: "scaling path",
+        body:
+          `Package into repeatable productized service or digital product, ` +
+          `collect testimonials, run focused outreach in short daily sprints.`,
+      },
+      {
+        title: "choose your next action",
+        body:
+          `Don’t like this? I can suggest another option. ` +
+          `Want details? I can break down exact steps for execution.`,
+      },
     ];
   }
 
@@ -168,13 +193,16 @@ export default function CareerHelpPage() {
     setStage("result");
     setLoading(false);
   }
+
   async function handleSubmitOpt2() {
+    // ensure required answers (light check)
     setLoading(true);
     const blocks = await callApiOrFallback({ mode: "opt2", answers: a2 });
     setResult(blocks);
     setStage("result");
     setLoading(false);
   }
+
   async function handleSubmitOpt3() {
     setLoading(true);
     const blocks = await callApiOrFallback({ mode: "opt3", answers: a3 });
@@ -182,6 +210,7 @@ export default function CareerHelpPage() {
     setStage("result");
     setLoading(false);
   }
+
   function copyResult() {
     if (!result) return;
     const txt = result.map(b => `${b.title}\n${b.body}`).join("\n\n");
@@ -190,6 +219,7 @@ export default function CareerHelpPage() {
       setTimeout(() => setCopied(false), 1800);
     });
   }
+
   function goBackHome() {
     setStage("landing");
     setResult(null);
@@ -199,47 +229,16 @@ export default function CareerHelpPage() {
     setLoading(false);
   }
 
-  if (checking) {
-    return (
-      <main style={{ background: "#0d0d0d", color: "#fff", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        Loading...
-      </main>
-    );
-  }
-
   return (
     <main style={page}>
-      {/* BACK BUTTON */}
-      <button
-        onClick={() => (window.location.href = "/")}
-        style={{
-          position: "absolute",
-          top: 20,
-          left: 20,
-          background: "#1b1b1f",
-          border: "1px solid #2e2e38",
-          color: "#ccc",
-          padding: "8px 14px",
-          borderRadius: "8px",
-          cursor: "pointer",
-          zIndex: 20,
-        }}
-      >
-        ← Back
-      </button>
-
-      {/* Your original content below */}
       <div style={heroGlow} />
       <div style={container}>
-        {/* your original header and logic */}
         <header style={header}>
-          <div />
+          <button onClick={() => (window.location.href = "/")} style={backBtn}>← Back</button>
           <h1 style={title}>Career Coach</h1>
           <div />
         </header>
 
-        {/* all your existing stages and sections */}
-        {/* (unchanged logic here — same as original) */}
         {stage === "landing" && (
           <section style={panel}>
             <h2 style={subtitle}>Let’s figure out your next move</h2>
@@ -261,61 +260,292 @@ export default function CareerHelpPage() {
           </section>
         )}
 
+        {stage === "opt1" && (
+          <section style={panel}>
+            <h3 style={sectionTitle}>Tell me your dream role</h3>
+            <input
+              value={dreamRole}
+              onChange={(e) => setDreamRole(e.target.value)}
+              placeholder="Example: Data Scientist, Corporate Lawyer, Pilot"
+              style={input}
+            />
+            <div style={row}>
+              <button style={primary} onClick={handleSubmitOpt1} disabled={loading || !dreamRole.trim()}>
+                {loading ? "Generating…" : "Generate My Plan"}
+              </button>
+              <button style={ghost} onClick={goBackHome}>Go Back</button>
+            </div>
+          </section>
+        )}
+
+        {stage === "opt2" && (
+          <section style={panel}>
+            <h3 style={sectionTitle}>Answer a few quick questions</h3>
+            <div style={grid}>
+              {q2.map((q) => (
+                <div key={q.key} style={qCard}>
+                  <label style={label}>{q.label}</label>
+                  <input
+                    type={q.type === "number" ? "number" : "text"}
+                    value={a2[q.key] || ""}
+                    onChange={(e) => setA2((prev) => ({ ...prev, [q.key]: e.target.value }))}
+                    style={input}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={row}>
+              <button style={primary} onClick={handleSubmitOpt2} disabled={loading}>
+                {loading ? "Thinking…" : "Submit"}
+              </button>
+              <button style={ghost} onClick={goBackHome}>Go Back</button>
+            </div>
+          </section>
+        )}
+
+        {stage === "opt3" && (
+          <section style={panel}>
+            <h3 style={sectionTitle}>Answer these to tailor side income</h3>
+            <div style={grid}>
+              {q3.map((q) => (
+                <div key={q.key} style={qCard}>
+                  <label style={label}>{q.label}</label>
+                  <input
+                    type={q.type === "number" ? "number" : "text"}
+                    value={a3[q.key] || ""}
+                    onChange={(e) => setA3((prev) => ({ ...prev, [q.key]: e.target.value }))}
+                    style={input}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={row}>
+              <button style={primary} onClick={handleSubmitOpt3} disabled={loading}>
+                {loading ? "Planning…" : "Submit"}
+              </button>
+              <button style={ghost} onClick={goBackHome}>Go Back</button>
+            </div>
+          </section>
+        )}
+
+        {stage === "result" && result && (
+          <section style={panel}>
+            <div style={resultHeader}>
+              <h3 style={sectionTitle}>Your personalized plan</h3>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button style={copyBtn} onClick={copyResult}>Copy</button>
+                <button style={ghost} onClick={goBackHome}>Go Back</button>
+              </div>
+            </div>
+            <div style={resultGrid}>
+              {result.map((b, i) => (
+                <div key={i} style={resultCard}>
+                  <div style={resultTitle}>{b.title}</div>
+                  <div style={resultBody}>{b.body}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {copied && <div style={toast}>Copied to clipboard</div>}
       </div>
-
-      {/* Lock overlay */}
-      {plan !== "premium" && (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0,0,0,0.9)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-            backdropFilter: "blur(8px)",
-            zIndex: 15,
-          }}
-        >
-          <h1
-            style={{
-              fontSize: "32px",
-              background: "linear-gradient(90deg, #27f0c8, #3aa3ff, #b575ff)",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-              marginBottom: "16px",
-            }}
-          >
-            Premium Feature Locked
-          </h1>
-          <p style={{ maxWidth: "500px", color: "#ccc", marginBottom: "30px" }}>
-            Career Help is available only for Premium members. Upgrade now to unlock personalized plans and strategies.
-          </p>
-          <button
-            onClick={() => (window.location.href = "/pricing")}
-            style={{
-              background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
-              color: "#000",
-              padding: "12px 22px",
-              borderRadius: "10px",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: "bold",
-              boxShadow: "0 0 18px rgba(58,163,255,0.4)",
-            }}
-          >
-            Upgrade to Premium
-          </button>
-        </div>
-      )}
     </main>
   );
 }
 
-/* keep all your style constants below untouched */
+/* theme and styles */
+const page: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "radial-gradient(1200px 600px at 10% -10%, #1b1f2a, transparent), radial-gradient(1000px 500px at 120% 120%, #261a2e, transparent), #0c0d12",
+  color: "#fff",
+  fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial",
+  position: "relative",
+};
+
+const heroGlow: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background:
+    "radial-gradient(600px 200px at 20% 10%, rgba(95,161,255,0.15), transparent), radial-gradient(500px 180px at 80% 90%, rgba(255,118,198,0.12), transparent)",
+  pointerEvents: "none",
+};
+
+const container: React.CSSProperties = { maxWidth: 1100, margin: "0 auto", padding: "28px" };
+
+const header: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  marginBottom: 14,
+};
+
+const backBtn: React.CSSProperties = {
+  background: "rgba(255,255,255,0.06)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  color: "#e6e6ff",
+  padding: "8px 12px",
+  borderRadius: 12,
+  cursor: "pointer",
+};
+
+const title: React.CSSProperties = {
+  margin: 0,
+  fontSize: 28,
+  fontWeight: 900,
+  letterSpacing: 0.2,
+  background: "linear-gradient(90deg, #9bb8ff, #ff93d2, #6ff2d0)",
+  WebkitBackgroundClip: "text",
+  color: "transparent",
+};
+
+const subtitle: React.CSSProperties = { margin: "0 0 6px 0", fontSize: 20, fontWeight: 800 };
+const muted: React.CSSProperties = { margin: 0, color: "#b9bdd6" };
+
+const panel: React.CSSProperties = {
+  background: "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: 18,
+  padding: 20,
+  backdropFilter: "blur(8px)",
+  boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+  marginTop: 18,
+};
+
+const choices: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: 14,
+  marginTop: 14,
+};
+
+const baseChoice: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: 6,
+  padding: "14px 16px",
+  borderRadius: 14,
+  border: "1px solid rgba(255,255,255,0.14)",
+  cursor: "pointer",
+  boxShadow: "0 8px 30px rgba(0,0,0,0.25)",
+};
+
+const choiceBtnPink: React.CSSProperties = {
+  ...baseChoice,
+  background: "linear-gradient(135deg, #2a1a24, #211a2c)",
+  color: "#ffd9f1",
+};
+
+const choiceBtnBlue: React.CSSProperties = {
+  ...baseChoice,
+  background: "linear-gradient(135deg, #192535, #182233)",
+  color: "#d6e6ff",
+};
+
+const choiceBtnGreen: React.CSSProperties = {
+  ...baseChoice,
+  background: "linear-gradient(135deg, #152a25, #16241f)",
+  color: "#d6ffef",
+};
+
+const choiceSub: React.CSSProperties = { fontSize: 12, opacity: 0.85 };
+
+const sectionTitle: React.CSSProperties = { margin: "2px 0 12px 0", fontSize: 18, fontWeight: 800 };
+
+const input: React.CSSProperties = {
+  width: "100%",
+  background: "rgba(12,14,20,0.8)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  color: "#f2f2ff",
+  padding: "12px 14px",
+  borderRadius: 12,
+  outline: "none",
+};
+
+const row: React.CSSProperties = { display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" };
+
+const primary: React.CSSProperties = {
+  background: "linear-gradient(90deg, #79ffd6, #6aaeff)",
+  color: "#041217",
+  fontWeight: 900,
+  padding: "12px 16px",
+  borderRadius: 12,
+  border: "none",
+  cursor: "pointer",
+};
+
+const ghost: React.CSSProperties = {
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  color: "#e8e8ff",
+  padding: "12px 16px",
+  borderRadius: 12,
+  cursor: "pointer",
+};
+
+const grid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: 12,
+};
+
+const qCard: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 6,
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  borderRadius: 14,
+  padding: 12,
+};
+
+const label: React.CSSProperties = { fontSize: 12, color: "#cbd0ea" };
+
+const resultHeader: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  marginBottom: 8,
+};
+
+const copyBtn: React.CSSProperties = {
+  background: "linear-gradient(90deg, #27f0c8, #3aa3ff, #b575ff)",
+  color: "#061014",
+  fontWeight: 800,
+  padding: "10px 14px",
+  border: "none",
+  borderRadius: 12,
+  cursor: "pointer",
+};
+
+const resultGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: 12,
+};
+
+const resultCard: React.CSSProperties = {
+  background: "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: 16,
+  padding: 14,
+  minHeight: 120,
+};
+
+const resultTitle: React.CSSProperties = { fontWeight: 900, marginBottom: 6, fontSize: 14 };
+const resultBody: React.CSSProperties = { color: "#dfe3ff", fontSize: 13, lineHeight: 1.5 };
+
+const toast: React.CSSProperties = {
+  position: "fixed",
+  top: 18,
+  right: 18,
+  background: "linear-gradient(90deg,#79ffd6,#6aaeff)",
+  color: "#061014",
+  padding: "10px 14px",
+  borderRadius: 12,
+  fontWeight: 800,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+}; 
