@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 type Tone = "Academic" | "Professional" | "Casual";
 
@@ -11,6 +12,33 @@ export default function GrammarPage() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [pasted, setPasted] = useState(false);
+
+  const [plan, setPlan] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  useEffect(() => {
+    const checkPlan = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setPlan("free");
+        setChecking(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", session.user.id)
+        .single();
+      setPlan(data?.plan || "free");
+      setChecking(false);
+    };
+    checkPlan();
+  }, []);
 
   const steps = useMemo(
     () => [
@@ -32,6 +60,13 @@ export default function GrammarPage() {
 
   async function fixGrammar() {
     if (!text.trim()) return;
+
+    // ✅ Restrict free users
+    if (plan !== "premium") {
+      alert("Upgrade to Premium to use the Grammar feature.");
+      return;
+    }
+
     setLoading(true);
     setFixed("");
     setChanges([]);
@@ -75,6 +110,14 @@ export default function GrammarPage() {
   }
 
   const progress = Math.round(((step + 1) / steps.length) * 100);
+
+  if (checking) {
+    return (
+      <main style={{ color: "white", textAlign: "center", padding: 50 }}>
+        Checking access...
+      </main>
+    );
+  }
 
   return (
     <main style={page}>
@@ -160,6 +203,7 @@ export default function GrammarPage() {
   );
 }
 
+/* === all original styles preserved === */
 const page: React.CSSProperties = { minHeight: "100vh", color: "#fff", background: "#0d0d0d", fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial" };
 const wrap: React.CSSProperties = { maxWidth: 1200, margin: "0 auto", padding: 24 };
 const header: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12 };
@@ -191,7 +235,6 @@ const toastOk: React.CSSProperties = {
   alignSelf: "start", background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)", color: "#000",
   padding: "6px 10px", borderRadius: 10, fontWeight: 700, marginTop: 6
 };
-
 const loaderCard: React.CSSProperties = {
   width: "100%", background: "linear-gradient(135deg,#111,#171822)", border: "1px solid #2a2d3a",
   borderRadius: 14, padding: 16, position: "relative", overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.35)"
@@ -204,7 +247,6 @@ const loaderStep: React.CSSProperties = { fontSize: 16, fontWeight: 700, marginB
 const progressOuter: React.CSSProperties = { height: 10, background: "#20212a", borderRadius: 999, overflow: "hidden", border: "1px solid #2f3140" };
 const progressInner: React.CSSProperties = { height: "100%", background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)", transition: "width 600ms ease" };
 const loaderHint: React.CSSProperties = { marginTop: 8, color: "#a8a8c2", fontSize: 12 };
-
 const changesBox: React.CSSProperties = {
   background: "linear-gradient(135deg,#101116,#141722)", border: "1px solid #2c2f3d", borderRadius: 12, padding: 14
 };
