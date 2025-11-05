@@ -2,7 +2,16 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { topic, slides = 10 } = await req.json();
+    // ✅ Premium check
+    const user = await req.json().catch(() => ({}));
+    if (!user?.isPremium) {
+      return NextResponse.json(
+        { error: "This feature is only available for premium users." },
+        { status: 403 }
+      );
+    }
+
+    const { topic, slides = 10 } = user;
 
     const prompt = `
 You are SlideCraft, an elite slide writer. Create a JSON with exactly this shape:
@@ -46,7 +55,6 @@ Topic: "${topic}"
 
     const data = await resp.json();
 
-    // The Responses API returns content in data.output[0].content[0].text for text blocks
     let raw = "";
     try {
       raw =
@@ -61,7 +69,6 @@ Topic: "${topic}"
     try {
       json = JSON.parse(raw);
     } catch {
-      // fallback minimal
       json = {
         slides: [
           { title: topic, bullets: ["Overview", "Why it matters", "What you’ll learn"], notes: "" },
@@ -70,7 +77,6 @@ Topic: "${topic}"
       };
     }
 
-    // hard cap & sanitize
     const clean = Array.isArray(json.slides)
       ? json.slides.slice(0, Math.min(Number(slides) || 12, 15)).map((s: any) => ({
           title: String(s?.title || "Slide"),
