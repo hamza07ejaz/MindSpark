@@ -1,26 +1,23 @@
 import { NextResponse } from "next/server";
 
-// Simulated temporary database (you can later replace with real one)
-const notesLog = new Map();
+// simple in-memory log (resets on every deploy)
+const notesLog = new Map<string, number>();
 
-export async function POST(req) {
+export async function POST(req: Request): Promise<NextResponse> {
   try {
-    // Simulate user and plan
+    // simulate user
     const fakeUser = { id: "12345", plan: "free" }; // change to "premium" for testing
 
-    const { text } = await req.json();
-    if (!text?.trim()) {
-      return NextResponse.json(
-        { error: "Text cannot be empty." },
-        { status: 400 }
-      );
+    const body = await req.json();
+    const text = body.text?.trim();
+    if (!text) {
+      return NextResponse.json({ error: "Text cannot be empty." }, { status: 400 });
     }
 
     const today = new Date().toISOString().split("T")[0];
     const key = `${fakeUser.id}-${today}`;
     const count = notesLog.get(key) || 0;
 
-    // limit check for free users
     if (fakeUser.plan === "free" && count >= 2) {
       return NextResponse.json(
         {
@@ -32,7 +29,7 @@ export async function POST(req) {
       );
     }
 
-    // Generate AI notes (your original code)
+    // generate AI notes
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -59,7 +56,6 @@ export async function POST(req) {
     const data = await response.json();
     const notes = data.choices?.[0]?.message?.content || "No notes generated.";
 
-    // Update fake note count
     notesLog.set(key, count + 1);
 
     return NextResponse.json({ notes });
