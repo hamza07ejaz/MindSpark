@@ -1,18 +1,50 @@
 import type { NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "edge";
+
+// ✅ Supabase setup
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 type Body = { topic?: string; style?: "APA"|"MLA"|"Chicago"; count?: number };
 
 export async function POST(req: NextRequest) {
   try {
+    // ✅ Check user plan (premium only)
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid user" }), { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || profile.plan !== "premium") {
+      return new Response(
+        JSON.stringify({ error: "Citations feature is available only for Premium users." }),
+        { status: 403 }
+      );
+    }
+
+    // ✅ Your original code starts here
     const { topic = "", style = "APA", count = 6 } = (await req.json()) as Body;
     const safeCount = Math.min(8, Math.max(5, Number(count) || 6));
     const prompt = buildPrompt(topic, style, safeCount);
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
-      // OpenAI path (no package.json changes needed)
       const resp = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -35,21 +67,28 @@ export async function POST(req: NextRequest) {
       try {
         arr = JSON.parse(raw);
       } catch {
-        // try to extract lines if model didn’t return pure JSON
         arr = String(raw)
           .split("\n")
           .map((s: string) => s.trim())
           .filter(Boolean);
       }
       const citations = arr.slice(0, safeCount).map((t) => ({ text: t }));
-      return new Response(JSON.stringify({ citations }), { status: 200, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ citations }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // Fallback mock (works without any keys)
     const fallback = mockCitations(topic, style, safeCount).map((t) => ({ text: t }));
-    return new Response(JSON.stringify({ citations: fallback }), { status: 200, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ citations: fallback }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (e) {
-    return new Response(JSON.stringify({ citations: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ citations: [] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -62,7 +101,6 @@ If a URL is used, ensure it's plausible and stable; prefer books, journals, repu
   `.trim();
 }
 
-// Simple deterministic fallback patterns so it still looks professional
 function mockCitations(topic: string, style: string, count: number): string[] {
   const year = new Date().getFullYear();
   const base = [
@@ -78,17 +116,10 @@ function mockCitations(topic: string, style: string, count: number): string[] {
   const pick = base.slice(0, count);
 
   if (style === "APA") {
-    return pick.map(
-      (b) => `${b.author} (${b.year}). ${b.title}. ${b.city}: ${b.publisher}.`
-    );
+    return pick.map((b) => `${b.author} (${b.year}). ${b.title}. ${b.city}: ${b.publisher}.`);
   }
   if (style === "MLA") {
-    return pick.map(
-      (b) => `${b.author} ${b.title}. ${b.publisher}, ${b.year}.`
-    );
+    return pick.map((b) => `${b.author} ${b.title}. ${b.publisher}, ${b.year}.`);
   }
-  // Chicago (Notes & Bibliography style – book basic)
-  return pick.map(
-    (b) => `${b.author} ${b.title}. ${b.city}: ${b.publisher}, ${b.year}.`
-  );
+  return pick.map((b) => `${b.author} ${b.title}. ${b.city}: ${b.publisher}, ${b.year}.`);
 }
