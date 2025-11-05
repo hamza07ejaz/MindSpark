@@ -16,8 +16,16 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: input }),
       });
-      const data = await res.json();
-      setNotes(data.notes || "No notes generated.");
+     const data = await res.json();
+
+// check if user hit free limit
+if (res.status === 403 && data.upgrade) {
+  alert(data.error); // show upgrade message
+  window.location.href = "/pricing"; // redirect to Premium page
+  return;
+}
+
+setNotes(data.notes || "No notes generated.");
     } catch {
       setNotes("Error generating notes.");
     } finally {
