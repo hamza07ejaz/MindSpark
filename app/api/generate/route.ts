@@ -1,23 +1,27 @@
 import { NextResponse } from "next/server";
-import gighub from "@/lib/gighub"; // adjust if your GigHub client is elsewhere
 
-export async function POST(req: Request) {
+// Simulated temporary database (you can later replace with real one)
+const notesLog = new Map();
+
+export async function POST(req) {
   try {
-    const user = await gighub.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Not logged in." }, { status: 401 });
+    // Simulate user and plan
+    const fakeUser = { id: "12345", plan: "free" }; // change to "premium" for testing
+
+    const { text } = await req.json();
+    if (!text?.trim()) {
+      return NextResponse.json(
+        { error: "Text cannot be empty." },
+        { status: 400 }
+      );
     }
 
-    const plan = user?.plan || "free";
-
-    // Check daily note limit for free users
     const today = new Date().toISOString().split("T")[0];
-    const notesToday = await gighub.db.notes
-      .where("user_id", "==", user.id)
-      .where("date", "==", today)
-      .count();
+    const key = `${fakeUser.id}-${today}`;
+    const count = notesLog.get(key) || 0;
 
-    if (plan === "free" && notesToday >= 2) {
+    // limit check for free users
+    if (fakeUser.plan === "free" && count >= 2) {
       return NextResponse.json(
         {
           error:
@@ -28,9 +32,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // --- original AI note generation (unchanged) ---
-    const { text } = await req.json();
-
+    // Generate AI notes (your original code)
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -57,19 +59,14 @@ export async function POST(req: Request) {
     const data = await response.json();
     const notes = data.choices?.[0]?.message?.content || "No notes generated.";
 
-    // Save note in your database (for tracking)
-    await gighub.db.notes.insert({
-      user_id: user.id,
-      date: today,
-      content: notes,
-      created_at: new Date().toISOString(),
-    });
+    // Update fake note count
+    notesLog.set(key, count + 1);
 
     return NextResponse.json({ notes });
   } catch (error) {
     console.error("Error generating notes:", error);
     return NextResponse.json(
-      { error: "Failed to generate notes" },
+      { error: "Failed to generate notes." },
       { status: 500 }
     );
   }
