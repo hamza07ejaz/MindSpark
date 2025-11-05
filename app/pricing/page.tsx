@@ -30,7 +30,6 @@ export default function PricingPage() {
     },
   ];
 
-  // handle upgrade logic
   const handleUpgrade = async (planName: string) => {
     if (planName === "Free") {
       alert("Free plan selected");
@@ -40,13 +39,15 @@ export default function PricingPage() {
     try {
       const response = await fetch("/api/create-checkout-session", {
         method: "POST",
+        credentials: "include", // ✅ keeps Supabase session cookies
       });
+
       const session = await response.json();
 
       if (session.url) {
         window.location.href = session.url;
       } else {
-        alert("Unable to start checkout session");
+        alert(session.error || "Unable to start checkout session");
       }
     } catch (error) {
       console.error("Error:", error);
