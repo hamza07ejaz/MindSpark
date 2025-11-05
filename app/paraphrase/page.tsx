@@ -1,11 +1,51 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 export default function Paraphraser() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [plan, setPlan] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  useEffect(() => {
+    const checkPlan = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setPlan("free");
+          setChecking(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("plan")
+          .eq("id", user.id)
+          .single();
+
+        if (error || !data) {
+          setPlan("free");
+        } else {
+          setPlan(data.plan);
+        }
+      } catch (err) {
+        console.error(err);
+        setPlan("free");
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    checkPlan();
+  }, []);
 
   const handleParaphrase = async () => {
     if (!input.trim()) return;
@@ -34,6 +74,73 @@ export default function Paraphraser() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (checking) {
+    return (
+      <main
+        style={{
+          background: "#0d0d0d",
+          color: "#fff",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "sans-serif",
+        }}
+      >
+        <p>Loading...</p>
+      </main>
+    );
+  }
+
+  if (plan !== "premium") {
+    return (
+      <main
+        style={{
+          background: "#0d0d0d",
+          color: "#fff",
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "sans-serif",
+          textAlign: "center",
+          padding: "20px",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "32px",
+            background: "linear-gradient(90deg, #27f0c8, #3aa3ff, #b575ff)",
+            WebkitBackgroundClip: "text",
+            color: "transparent",
+            marginBottom: "16px",
+          }}
+        >
+          Premium Feature Locked
+        </h1>
+        <p style={{ maxWidth: "500px", color: "#ccc", marginBottom: "30px" }}>
+          The Paraphrasing Tool is available only for Premium members. Upgrade now to unlock unlimited paraphrasing and advanced features.
+        </p>
+        <button
+          onClick={() => (window.location.href = "/upgrade")}
+          style={{
+            background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
+            color: "#000",
+            padding: "12px 22px",
+            borderRadius: "10px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+            boxShadow: "0 0 18px rgba(58,163,255,0.4)",
+          }}
+        >
+          Upgrade to Premium
+        </button>
+      </main>
+    );
+  }
 
   return (
     <main
