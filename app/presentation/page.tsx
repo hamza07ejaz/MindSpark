@@ -9,7 +9,21 @@ const BASE_CSS = `
   .deck{padding:20px}
   .slide{margin-bottom:12px}
 `;
+
+// ✅ Move the key style constants ABOVE the component
 const page: React.CSSProperties = { minHeight: "100vh", background: "#0d0d0d", color: "#fff" };
+const container: React.CSSProperties = { maxWidth: 1200, margin: "0 auto", padding: "24px" };
+const header: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, marginBottom: 14 };
+const title: React.CSSProperties = {
+  fontSize: 26, fontWeight: 800,
+  background: "linear-gradient(90deg,#ff6ec7,#6ea8ff,#55f2c8)",
+  WebkitBackgroundClip: "text", color: "transparent", margin: 0,
+};
+const backBtn: React.CSSProperties = {
+  background: "#1c1c1f", border: "1px solid #31313a", color: "#cfcfe6",
+  padding: "8px 12px", borderRadius: 10, cursor: "pointer",
+};
+
 export default function PresentationPage() {
   const [topic, setTopic] = useState("");
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -17,7 +31,6 @@ export default function PresentationPage() {
   const [step, setStep] = useState(0);
   const [editing, setEditing] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [plan, setPlan] = useState<string | null>(null);
   const deckRef = useRef<HTMLDivElement>(null);
 
   const steps = useMemo(
@@ -30,19 +43,6 @@ export default function PresentationPage() {
     ],
     []
   );
-
-  useEffect(() => {
-    const fetchPlan = async () => {
-      try {
-        const res = await fetch("/api/get-user-plan");
-        const data = await res.json();
-        setPlan(data.plan || "free");
-      } catch {
-        setPlan("free");
-      }
-    };
-    fetchPlan();
-  }, []);
 
   useEffect(() => {
     if (!loading) return;
@@ -138,54 +138,6 @@ export default function PresentationPage() {
     });
   }
 
-  // ✅ Premium restriction
-  if (plan === null) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#0d0d0d", color: "#fff",
-        display: "flex", alignItems: "center", justifyContent: "center" }}>
-        Loading...
-      </div>
-    );
-  }
-
-  if (plan === "free") {
-    return (
-      <div style={{
-        minHeight: "100vh", background: "#0d0d0d", color: "#fff",
-        display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", textAlign: "center", padding: 20,
-      }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 16 }}>
-          AI Presentation Builder
-        </h1>
-        <p style={{ color: "#ff7777", fontSize: 18, marginBottom: 24 }}>
-          This feature is available only for Premium users.
-        </p>
-        <button
-          onClick={() => (window.location.href = "/pricing")}
-          style={{
-            background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
-            color: "#000", fontWeight: "bold", padding: "12px 26px",
-            borderRadius: 10, border: "none", cursor: "pointer", fontSize: 16,
-          }}
-        >
-          Upgrade to Premium
-        </button>
-        <button
-          onClick={() => (window.location.href = "/")}
-          style={{
-            marginTop: 30, background: "#ff8c00", color: "#fff",
-            padding: "12px 26px", borderRadius: 10, border: "none",
-            cursor: "pointer", fontWeight: "bold",
-          }}
-        >
-          ← Go Back
-        </button>
-      </div>
-    );
-  }
-
-  // ✅ original content below (unchanged)
   return (
     <div style={page}>
       <Script
@@ -198,94 +150,7 @@ export default function PresentationPage() {
           <button onClick={() => (window.location.href = "/")} style={backBtn}>← Back</button>
           <h1 style={title}>AI Presentation</h1>
         </div>
-
-        <div style={controlBar}>
-          <input
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="Enter your topic…"
-            style={inputBox}
-          />
-          <button onClick={handleGenerate} disabled={loading} style={primaryBtn}>
-            {loading ? "Generating…" : "Generate Presentation"}
-          </button>
-          <button onClick={() => setEditing((e) => !e)} disabled={slides.length === 0} style={ghostBtn}>
-            {editing ? "Lock Editing" : "Edit Slides"}
-          </button>
-          <button
-            onClick={copyAll}
-            disabled={slides.length === 0}
-            style={{
-              background: "linear-gradient(90deg,#00ffa8,#00c7ff)",
-              color: "#061014",
-              fontWeight: 800,
-              padding: "14px 20px",
-              border: "none",
-              borderRadius: 12,
-              cursor: "pointer",
-              fontSize: 16,
-              flex: 1,
-              minWidth: 220,
-              boxShadow: "0 0 20px rgba(0,255,180,0.4)",
-            }}
-          >
-            {copied ? "Copied! Paste Anywhere ✨" : "Copy Deck (Paste Anywhere)"}
-          </button>
-        </div>
-
-        {copied && <div style={toast}>Copied to clipboard ✨</div>}
-
-        {loading && (
-          <div style={loaderWrap}>
-            <div style={loaderCard}>
-              <div style={loaderGlow} />
-              <div style={loaderStep}>{steps[step]}</div>
-              <div style={progressBarOuter}>
-                <div style={{ ...progressBarInner, width: `${progress}%` }} />
-              </div>
-              <div style={loaderHint}>Please wait while we build a premium deck…</div>
-            </div>
-          </div>
-        )}
-
-        {!loading && slides.length > 0 && (
-          <div ref={deckRef} className="deck" style={deck}>
-            {slides.map((s, i) => (
-              <div key={i} className="slide" style={slideCard}>
-                {editing ? (
-                  <input
-                    value={s.title}
-                    onChange={(e) => updateTitle(i, e.target.value)}
-                    style={slideTitleInput}
-                  />
-                ) : (
-                  <div style={slideTitle}>{s.title}</div>
-                )}
-                <div style={bulletWrap}>
-                  {s.bullets.map((b, j) =>
-                    editing ? (
-                      <div key={j} style={bulletRow}>
-                        <input
-                          value={b}
-                          onChange={(e) => updateBullet(i, j, e.target.value)}
-                          style={bulletInput}
-                        />
-                        <button onClick={() => removeBullet(i, j)} style={chipBtn}>✕</button>
-                      </div>
-                    ) : (
-                      <div key={j} style={bulletStatic}>• {b}</div>
-                    )
-                  )}
-                  {editing && <button onClick={() => addBullet(i)} style={addBulletBtn}>+ Add bullet</button>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
-      <style>{`html,body{background:#0d0d0d}`}</style>
     </div>
   );
 }
-
-/* === your styles stay identical below === */
