@@ -5,18 +5,35 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
+// simple in-memory tracker (resets when redeployed)
+const qnaLog = new Map<string, string>();
+
 export async function POST(req: Request) {
   try {
+    // simulate user (replace later with real auth)
+    const fakeUser = { id: "12345", plan: "free" }; // change to "premium" for testing
+
     const { topic } = await req.json();
 
     if (!topic || topic.trim() === "") {
+      return NextResponse.json({ error: "Topic is required." }, { status: 400 });
+    }
+
+    // Limit for free users: one QnA per 24h
+    const lastUsed = qnaLog.get(fakeUser.id);
+    const now = Date.now();
+    if (fakeUser.plan === "free" && lastUsed && now - Number(lastUsed) < 24 * 60 * 60 * 1000) {
       return NextResponse.json(
-        { error: "Topic is required." },
-        { status: 400 }
+        {
+          error:
+            "You’ve used your free QnA for today. Come back after 24 hours or upgrade to Premium for unlimited questions.",
+          upgrade: true,
+        },
+        { status: 403 }
       );
     }
 
-    // 💡 This is where the Q&A magic happens
+    // generate Q&A
     const prompt = `
 You are a helpful AI study assistant.  
 Generate 10 high-quality, educational Q&A pairs about the topic "${topic}".  
@@ -45,7 +62,6 @@ Keep answers short, clear, and directly useful for studying.`;
     let text = completion.choices[0].message?.content || "";
     let qna = [];
 
-    // Try to parse JSON from response safely
     try {
       qna = JSON.parse(text);
     } catch {
@@ -56,11 +72,11 @@ Keep answers short, clear, and directly useful for studying.`;
     }
 
     if (!Array.isArray(qna) || qna.length === 0) {
-      return NextResponse.json(
-        { error: "Failed to generate valid Q&A." },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to generate valid Q&A." }, { status: 500 });
     }
+
+    // record usage
+    qnaLog.set(fakeUser.id, now.toString());
 
     return NextResponse.json({ qna });
   } catch (error) {
