@@ -9,7 +9,7 @@ const BASE_CSS = `
   .deck{padding:20px}
   .slide{margin-bottom:12px}
 `;
-
+const page: React.CSSProperties = { minHeight: "100vh", background: "#0d0d0d", color: "#fff" };
 export default function PresentationPage() {
   const [topic, setTopic] = useState("");
   const [slides, setSlides] = useState<Slide[]>([]);
