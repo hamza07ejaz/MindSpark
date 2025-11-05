@@ -7,17 +7,20 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-10-29.clover" as any,
 });
 
+// (optional, but fine) export const runtime = "nodejs";
+
 export async function POST() {
   try {
-    const cookieStore = cookies();
+    // ⬇️ FIX: await cookies() in your Next version
+    const cookieStore = await cookies();
 
-    // ✅ Create supabase client with cookie context
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
           get: (name: string) => cookieStore.get(name)?.value,
+          // no-ops are OK for this route
           set() {},
           remove() {},
         },
@@ -25,7 +28,6 @@ export async function POST() {
     );
 
     const { data, error } = await supabase.auth.getUser();
-
     if (error || !data?.user) {
       console.error("Supabase user not found:", error);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -50,9 +52,9 @@ export async function POST() {
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("Stripe error:", err.message);
+    console.error("Stripe error:", err?.message || err);
     return NextResponse.json(
-      { error: err.message || "Failed to create checkout session" },
+      { error: err?.message || "Failed to create checkout session" },
       { status: 500 }
     );
   }
