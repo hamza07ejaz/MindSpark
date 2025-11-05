@@ -6,7 +6,7 @@ const openai = new OpenAI({
 });
 
 // simple in-memory tracker (resets when redeployed)
-const qnaLog = new Map<string, string>();
+const qnaLog = new Map<string, number>();
 
 export async function POST(req: Request) {
   try {
@@ -19,21 +19,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Topic is required." }, { status: 400 });
     }
 
-    // Limit for free users: one QnA per 24h
-    const lastUsed = qnaLog.get(fakeUser.id);
+    // ---- LIMIT LOGIC ----
     const now = Date.now();
-    if (fakeUser.plan === "free" && lastUsed && now - Number(lastUsed) < 24 * 60 * 60 * 1000) {
+    const lastUsed = qnaLog.get(fakeUser.id);
+    const dayInMs = 24 * 60 * 60 * 1000;
+
+    if (fakeUser.plan === "free" && lastUsed && now - lastUsed < dayInMs) {
       return NextResponse.json(
         {
           error:
-            "You’ve used your free QnA for today. Come back after 24 hours or upgrade to Premium for unlimited questions.",
+            "You’ve already used your free QnA today. Come back after 24 hours or upgrade to Premium for unlimited access.",
           upgrade: true,
         },
         { status: 403 }
       );
     }
 
-    // generate Q&A
+    // ---- GENERATE Q&A ----
     const prompt = `
 You are a helpful AI study assistant.  
 Generate 10 high-quality, educational Q&A pairs about the topic "${topic}".  
@@ -66,19 +68,23 @@ Keep answers short, clear, and directly useful for studying.`;
       qna = JSON.parse(text);
     } catch {
       const match = text.match(/\[([\s\S]*)\]/);
-      if (match) {
-        qna = JSON.parse(match[0]);
-      }
+      if (match) qna = JSON.parse(match[0]);
     }
 
     if (!Array.isArray(qna) || qna.length === 0) {
       return NextResponse.json({ error: "Failed to generate valid Q&A." }, { status: 500 });
     }
 
-    // record usage
-    qnaLog.set(fakeUser.id, now.toString());
+    // record usage timestamp
+    qnaLog.set(fakeUser.id, now);
 
-    return NextResponse.json({ qna });
+    return NextResponse.json({
+      qna,
+      remaining:
+        fakeUser.plan === "free"
+          ? "Come back after 24 hours or upgrade for unlimited QnA."
+          : "unlimited",
+    });
   } catch (error) {
     console.error("QnA API Error:", error);
     return NextResponse.json(
