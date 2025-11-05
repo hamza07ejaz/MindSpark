@@ -9,32 +9,29 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST() {
   try {
-    // ✅ Fix for Next.js 15+ – cookies() is async now
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
 
+    // ✅ Create supabase client with cookie context
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
+          get: (name: string) => cookieStore.get(name)?.value,
           set() {},
           remove() {},
         },
       }
     );
 
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
+    const { data, error } = await supabase.auth.getUser();
 
-    if (error || !user) {
+    if (error || !data?.user) {
       console.error("Supabase user not found:", error);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const user = data.user;
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
