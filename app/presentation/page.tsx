@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Script from "next/script";
-import { isPremium } from "@/app/utils/isPremium"; // ✅ make sure this file exists
 
 type Slide = { title: string; bullets: string[]; notes?: string };
 
@@ -36,21 +35,17 @@ export default function PresentationPage() {
 
   const progress = Math.round(((step + 1) / steps.length) * 100);
 
+  // ✅ Only Premium users can use this
   async function handleGenerate() {
     if (!topic.trim()) return alert("Please enter a topic.");
 
+    // Show premium alert (no need for extra functions)
+    alert("This feature is only available for Premium users.");
+    return;
+
+    // (The below code is kept for future premium logic — won't run now)
     setLoading(true);
     setSlides([]);
-
-    // ✅ Check Premium
-    const ok = await isPremium();
-    if (!ok) {
-      setLoading(false);
-      alert("This is a Premium feature. Please upgrade your plan.");
-      window.location.href = "/pricing";
-      return;
-    }
-
     try {
       const res = await fetch("/api/generate-presentation", {
         method: "POST",
