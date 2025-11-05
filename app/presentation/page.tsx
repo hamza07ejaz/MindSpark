@@ -4,19 +4,11 @@ import Script from "next/script";
 
 type Slide = { title: string; bullets: string[]; notes?: string };
 
-// ✅ Move these constants ABOVE component so TS finds them
-const page: React.CSSProperties = { minHeight: "100vh", background: "#0d0d0d", color: "#fff" };
-const container: React.CSSProperties = { maxWidth: 1200, margin: "0 auto", padding: "24px" };
-const header: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, marginBottom: 14 };
-const title: React.CSSProperties = {
-  fontSize: 26, fontWeight: 800,
-  background: "linear-gradient(90deg,#ff6ec7,#6ea8ff,#55f2c8)",
-  WebkitBackgroundClip: "text", color: "transparent", margin: 0,
-};
-const backBtn: React.CSSProperties = {
-  background: "#1c1c1f", border: "1px solid #31313a", color: "#cfcfe6",
-  padding: "8px 12px", borderRadius: 10, cursor: "pointer",
-};
+const BASE_CSS = `
+  *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+  .deck{padding:20px}
+  .slide{margin-bottom:12px}
+`;
 
 export default function PresentationPage() {
   const [topic, setTopic] = useState("");
@@ -145,153 +137,260 @@ export default function PresentationPage() {
           <h1 style={title}>AI Presentation</h1>
         </div>
 
-        <div style={{
-          display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 18,
-        }}>
+        <div style={controlBar}>
           <input
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             placeholder="Enter your topic…"
-            style={{
-              flex: 1, minWidth: 260, background: "linear-gradient(135deg,#111,#17171b)",
-              border: "1px solid #2d2d36", color: "#e8e8f5", padding: "12px 14px",
-              borderRadius: 12, outline: "none",
-            }}
+            style={inputBox}
           />
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            style={{
-              background: "linear-gradient(90deg,#00ffa8,#00c7ff)",
-              color: "#061014", fontWeight: 800,
-              padding: "12px 14px", border: "none", borderRadius: 12, cursor: "pointer",
-            }}
-          >
+          <button onClick={handleGenerate} disabled={loading} style={primaryBtn}>
             {loading ? "Generating…" : "Generate Presentation"}
           </button>
-          <button
-            onClick={() => setEditing((e) => !e)}
-            disabled={slides.length === 0}
-            style={{
-              background: "#1b1b1f", border: "1px solid #2f2f38", color: "#d6d6e9",
-              padding: "12px 14px", borderRadius: 12, cursor: "pointer",
-            }}
-          >
+          <button onClick={() => setEditing((e) => !e)} disabled={slides.length === 0} style={ghostBtn}>
             {editing ? "Lock Editing" : "Edit Slides"}
           </button>
+
+          {/* Replaced PowerPoint with Copy Deck Button */}
           <button
             onClick={copyAll}
             disabled={slides.length === 0}
             style={{
-              background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
-              color: "#000", fontWeight: 800, padding: "12px 14px",
-              border: "none", borderRadius: 12, cursor: "pointer",
+              background: "linear-gradient(90deg,#00ffa8,#00c7ff)",
+              color: "#061014",
+              fontWeight: 800,
+              padding: "14px 20px",
+              border: "none",
+              borderRadius: 12,
+              cursor: "pointer",
+              fontSize: 16,
+              flex: 1,
+              minWidth: 220,
+              boxShadow: "0 0 20px rgba(0,255,180,0.4)",
             }}
           >
-            {copied ? "Copied!" : "Copy Deck"}
+            {copied ? "Copied! Paste Anywhere ✨" : "Copy Deck (Paste Anywhere)"}
           </button>
         </div>
 
+        {copied && (
+          <div style={toast}>Copied to clipboard ✨</div>
+        )}
+
         {loading && (
-          <p style={{ color: "#ccc", marginTop: 20 }}>Generating your slides...</p>
+          <div style={loaderWrap}>
+            <div style={loaderCard}>
+              <div style={loaderGlow} />
+              <div style={loaderStep}>{steps[step]}</div>
+              <div style={progressBarOuter}>
+                <div style={{ ...progressBarInner, width: `${progress}%` }} />
+              </div>
+              <div style={loaderHint}>Please wait while we build a premium deck…</div>
+            </div>
+          </div>
         )}
 
         {!loading && slides.length > 0 && (
-          <div
-            ref={deckRef}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(420px,1fr))",
-              gap: 16,
-            }}
-          >
+          <div ref={deckRef} className="deck" style={deck}>
             {slides.map((s, i) => (
-              <div
-                key={i}
-                style={{
-                  background: "linear-gradient(135deg,#101116,#141722)",
-                  border: "1px solid #2c2f3d",
-                  borderRadius: 18,
-                  padding: 18,
-                  minHeight: 220,
-                  boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
-                }}
-              >
+              <div key={i} className="slide" style={slideCard}>
                 {editing ? (
                   <input
                     value={s.title}
                     onChange={(e) => updateTitle(i, e.target.value)}
-                    style={{
-                      fontSize: 20,
-                      fontWeight: 800,
-                      marginBottom: 10,
-                      background: "#0f1015",
-                      color: "#fff",
-                      border: "1px solid #2d3040",
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      width: "100%",
-                    }}
+                    style={slideTitleInput}
                   />
                 ) : (
-                  <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 10 }}>{s.title}</div>
+                  <div style={slideTitle}>{s.title}</div>
                 )}
-                <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={bulletWrap}>
                   {s.bullets.map((b, j) =>
                     editing ? (
-                      <div key={j} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <div key={j} style={bulletRow}>
                         <input
                           value={b}
                           onChange={(e) => updateBullet(i, j, e.target.value)}
-                          style={{
-                            flex: 1,
-                            background: "#0f1015",
-                            color: "#e9e9ff",
-                            border: "1px solid #2a2d3c",
-                            borderRadius: 10,
-                            padding: "8px 10px",
-                          }}
+                          style={bulletInput}
                         />
-                        <button
-                          onClick={() => removeBullet(i, j)}
-                          style={{
-                            background: "#2a2d3a",
-                            border: "1px solid #3a3d4c",
-                            color: "#dedeee",
-                            padding: "6px 10px",
-                            borderRadius: 10,
-                            cursor: "pointer",
-                          }}
-                        >
-                          ✕
-                        </button>
+                        <button onClick={() => removeBullet(i, j)} style={chipBtn}>✕</button>
                       </div>
                     ) : (
-                      <div key={j} style={{ fontSize: 16, color: "#e4e4f2" }}>• {b}</div>
+                      <div key={j} style={bulletStatic}>• {b}</div>
                     )
                   )}
-                  {editing && (
-                    <button
-                      onClick={() => addBullet(i)}
-                      style={{
-                        alignSelf: "flex-start",
-                        background: "#1b1c22",
-                        border: "1px solid #2e3040",
-                        color: "#cfd0e6",
-                        padding: "8px 10px",
-                        borderRadius: 10,
-                        cursor: "pointer",
-                      }}
-                    >
-                      + Add bullet
-                    </button>
-                  )}
+                  {editing && <button onClick={() => addBullet(i)} style={addBulletBtn}>+ Add bullet</button>}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+      <style>{`html,body{background:#0d0d0d}`}</style>
     </div>
   );
 }
+
+/* === styles (unchanged) === */
+const page: React.CSSProperties = { minHeight: "100vh", background: "#0d0d0d", color: "#fff" };
+const container: React.CSSProperties = { maxWidth: 1200, margin: "0 auto", padding: "24px" };
+const header: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, marginBottom: 14 };
+const title: React.CSSProperties = {
+  fontSize: 26, fontWeight: 800,
+  background: "linear-gradient(90deg,#ff6ec7,#6ea8ff,#55f2c8)",
+  WebkitBackgroundClip: "text", color: "transparent", margin: 0,
+};
+const backBtn: React.CSSProperties = {
+  background: "#1c1c1f", border: "1px solid #31313a", color: "#cfcfe6",
+  padding: "8px 12px", borderRadius: 10, cursor: "pointer",
+};
+const controlBar: React.CSSProperties = {
+  display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 18,
+};
+const inputBox: React.CSSProperties = {
+  flex: 1, minWidth: 260, background: "linear-gradient(135deg,#111,#17171b)",
+  border: "1px solid #2d2d36", color: "#e8e8f5", padding: "12px 14px",
+  borderRadius: 12, outline: "none",
+};
+const primaryBtn: React.CSSProperties = {
+  background: "linear-gradient(90deg,#00ffa8,#00c7ff)", color: "#061014", fontWeight: 800,
+  padding: "12px 14px", border: "none", borderRadius: 12, cursor: "pointer",
+};
+const ghostBtn: React.CSSProperties = {
+  background: "#1b1b1f", border: "1px solid #2f2f38", color: "#d6d6e9",
+  padding: "12px 14px", borderRadius: 12, cursor: "pointer",
+};
+const toast: React.CSSProperties = {
+  position: "fixed", top: 20, right: 20, background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
+  color: "#000", padding: "10px 16px", borderRadius: 10, fontWeight: 700,
+  boxShadow: "0 4px 20px rgba(0,0,0,0.3)", transition: "opacity 0.3s ease",
+};
+const loaderWrap: React.CSSProperties = { display: "flex", justifyContent: "center", marginTop: 50 };
+const loaderCard: React.CSSProperties = {
+  width: "100%", maxWidth: 640, background: "linear-gradient(135deg,#111,#171822)",
+  border: "1px solid #2a2d3a", borderRadius: 18, padding: 20, position: "relative",
+  overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.45)",
+};
+const loaderGlow: React.CSSProperties = {
+  position: "absolute", inset: 0,
+  background: "radial-gradient(600px 80px at 10% -10%,rgba(118,130,255,0.25),transparent), radial-gradient(600px 80px at 90% 120%,rgba(255,110,199,0.22),transparent)",
+};
+const loaderStep: React.CSSProperties = { fontSize: 18, fontWeight: 700, marginBottom: 12 };
+const progressBarOuter: React.CSSProperties = {
+  height: 10, background: "#20212a", borderRadius: 999, overflow: "hidden", border: "1px solid #2f3140",
+};
+const progressBarInner: React.CSSProperties = {
+  height: "100%", background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)", transition: "width 600ms ease",
+};
+const loaderHint: React.CSSProperties = { marginTop: 10, color: "#a8a8c2", fontSize: 13 };
+const deck: React.CSSProperties = {
+  display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(420px,1fr))", gap: 16,
+};
+const slideCard: React.CSSProperties = {
+  background: "linear-gradient(135deg,#101116,#141722)", border: "1px solid #2c2f3d",
+  borderRadius: 18, padding: 18, minHeight: 220, boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
+};
+const slideTitle: React.CSSProperties = { fontSize: 20, fontWeight: 800, marginBottom: 10 };
+const slideTitleInput: React.CSSProperties = {
+  ...slideTitle, background: "#0f1015", color: "#fff",
+  border: "1px solid #2d3040", borderRadius: 10, padding: "10px 12px",
+};
+const bulletWrap: React.CSSProperties = { marginTop: 6, display: "flex", flexDirection: "column", gap: 8 };
+const bulletStatic: React.CSSProperties = { fontSize: 16, color: "#e4e4f2" };
+const bulletRow: React.CSSProperties = { display: "flex", gap: 8, alignItems: "center" };
+const bulletInput: React.CSSProperties = {
+  flex: 1, background: "#0f1015", color: "#e9e9ff", border: "1px solid #2a2d3c", borderRadius: 10, padding: "8px 10px",
+};
+const chipBtn: React.CSSProperties = {
+  background: "#2a2d3a", border: "1px solid #3a3d4c", color: "#dedeee", padding: "6px 10px", borderRadius: 10, cursor: "pointer",
+};
+const addBulletBtn: React.CSSProperties = {
+  alignSelf: "flex-start", background: "#1b1c22", border: "1px solid #2e3040", color: "#cfd0e6",
+  padding: "8px 10px", borderRadius: 10, cursor: "pointer",
+};
+
+Api of presentation 
+import { NextResponse } from "next/server";
+
+export async function POST(req: Request) {
+  try {
+    const { topic, slides = 10 } = await req.json();
+
+    const prompt = `
+You are SlideCraft, an elite slide writer. Create a JSON with exactly this shape:
+{
+  "slides": [
+    { "title": "...", "bullets": ["...", "...", "..."], "notes": "..." }
+  ]
+}
+
+Rules:
+- 10–12 slides max.
+- Titles short and informative.
+- Bullets: concrete facts, cause→effect, definitions, examples, stats if relevant.
+- No markdown symbols (#, *, -). Plain text only.
+- Keep bullets punchy (5–12 words).
+- First slide = title slide. Final slide = summary / next steps.
+Topic: "${topic}"
+`;
+
+    const resp = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY || ""}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        input: [
+          { role: "system", content: "Respond with STRICT JSON only. No prose." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.4,
+        max_output_tokens: 2000,
+      }),
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      return NextResponse.json({ error: "Upstream error", detail: txt }, { status: 500 });
+    }
+
+    const data = await resp.json();
+
+    // The Responses API returns content in data.output[0].content[0].text for text blocks
+    let raw = "";
+    try {
+      raw =
+        data?.output?.[0]?.content?.find((c: any) => c.type === "output_text")?.text ||
+        data?.output_text ||
+        "";
+    } catch {
+      raw = "";
+    }
+
+    let json;
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      // fallback minimal
+      json = {
+        slides: [
+          { title: topic, bullets: ["Overview", "Why it matters", "What you’ll learn"], notes: "" },
+          { title: "Core Concepts", bullets: ["Concept A", "Concept B", "Concept C"], notes: "" },
+        ],
+      };
+    }
+
+    // hard cap & sanitize
+    const clean = Array.isArray(json.slides)
+      ? json.slides.slice(0, Math.min(Number(slides) || 12, 15)).map((s: any) => ({
+          title: String(s?.title || "Slide"),
+          bullets: Array.isArray(s?.bullets) ? s.bullets.map((b: any) => String(b)) : [],
+          notes: s?.notes ? String(s.notes) : "",
+        }))
+      : [];
+
+    return NextResponse.json({ slides: clean });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+  }
