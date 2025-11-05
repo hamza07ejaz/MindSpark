@@ -25,6 +25,12 @@ export default function QnaPage() {
       });
 
       const data = await res.json();
+      if (res.status === 403 && data.upgrade) {
+  alert(data.error); // show message to user
+  window.location.href = "/pricing"; // redirect to premium page
+  return;
+}
+
       if (data.error) {
         setError("Error generating Q&A. Try again.");
         return;
