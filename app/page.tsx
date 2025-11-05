@@ -1,10 +1,49 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
+  const [showSplash, setShowSplash] = useState(true);
   const [input, setInput] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 3000); // show splash for 3s
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showSplash) {
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "radial-gradient(circle at 20% 20%, #0a0a0f, #050507)",
+          color: "#fff",
+          fontFamily: "Inter, sans-serif",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "42px",
+            fontWeight: 900,
+            background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
+            WebkitBackgroundClip: "text",
+            color: "transparent",
+            marginBottom: "10px",
+          }}
+        >
+          Welcome to Eluna Mind
+        </h1>
+        <p style={{ color: "#b5b5c8", fontSize: "18px" }}>
+          Your AI Study Companion
+        </p>
+      </main>
+    );
+  }
 
   const handleGenerateNotes = async () => {
     if (!input.trim()) return;
@@ -16,16 +55,16 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: input }),
       });
-     const data = await res.json();
+      const data = await res.json();
 
-// check if user hit free limit
-if (res.status === 403 && data.upgrade) {
-  alert(data.error); // show upgrade message
-  window.location.href = "/pricing"; // redirect to Premium page
-  return;
-}
+      // check if user hit free limit
+      if (res.status === 403 && data.upgrade) {
+        alert(data.error); // show upgrade message
+        window.location.href = "/pricing"; // redirect to Premium page
+        return;
+      }
 
-setNotes(data.notes || "No notes generated.");
+      setNotes(data.notes || "No notes generated.");
     } catch {
       setNotes("Error generating notes.");
     } finally {
@@ -75,7 +114,6 @@ setNotes(data.notes || "No notes generated.");
           Eluna Mind
         </h2>
 
-        {/* 3-dot vertical menu icon */}
         <div
           onClick={() => (window.location.href = "/menu")}
           style={{
@@ -270,7 +308,6 @@ setNotes(data.notes || "No notes generated.");
         )}
       </section>
 
-      {/* ---- FOOTER ---- */}
       <footer
         style={{
           borderTop: "1px solid rgba(255,255,255,0.1)",
