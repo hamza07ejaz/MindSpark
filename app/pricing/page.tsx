@@ -10,7 +10,7 @@ export default function PricingPage() {
         "2 Notes per day",
         "1 Q&A per day",
         "Access to Free Study Plan",
-        "Access to Free career help,
+        "Access to Free career help",
       ],
       color: "linear-gradient(90deg,#3aa3ff,#b575ff)",
       border: "rgba(80,120,255,0.5)",
