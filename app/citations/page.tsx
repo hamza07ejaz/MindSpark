@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useRef, useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 type StyleType = "APA" | "MLA" | "Chicago";
 type Citation = { text: string };
@@ -7,11 +8,38 @@ type Citation = { text: string };
 export default function CitationsPage() {
   const [topic, setTopic] = useState("");
   const [style, setStyle] = useState<StyleType>("APA");
-  const [count, setCount] = useState<number>(6); // default within 5–8
+  const [count, setCount] = useState<number>(6);
   const [loading, setLoading] = useState(false);
   const [citations, setCitations] = useState<Citation[]>([]);
   const [copiedOne, setCopiedOne] = useState<number | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
+
+  const [plan, setPlan] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  useEffect(() => {
+    const checkPlan = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setPlan("free");
+        setChecking(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", session.user.id)
+        .single();
+      setPlan(data?.plan || "free");
+      setChecking(false);
+    };
+    checkPlan();
+  }, []);
 
   const steps = useMemo(
     () => [
@@ -38,6 +66,13 @@ export default function CitationsPage() {
 
   async function generate() {
     if (!topic.trim()) return;
+
+    // ✅ Block free users
+    if (plan !== "premium") {
+      alert("Upgrade to Premium to use the Citation feature.");
+      return;
+    }
+
     setLoading(true);
     setCitations([]);
     try {
@@ -83,11 +118,21 @@ export default function CitationsPage() {
     });
   }
 
+  if (checking) {
+    return (
+      <div style={{ color: "white", textAlign: "center", padding: 50 }}>
+        Checking access...
+      </div>
+    );
+  }
+
   return (
     <div style={page}>
       <div style={container}>
         <div style={header}>
-          <button onClick={() => (window.location.href = "/")} style={backBtn}>← Back</button>
+          <button onClick={() => (window.location.href = "/")} style={backBtn}>
+            ← Back
+          </button>
           <h1 style={title}>AI Citation Generator</h1>
         </div>
 
@@ -121,7 +166,10 @@ export default function CitationsPage() {
               </button>
               <button
                 onClick={() => setStyle("Chicago")}
-                style={{ ...pillBtn, ...(style === "Chicago" ? pillActive : {}) }}
+                style={{
+                  ...pillBtn,
+                  ...(style === "Chicago" ? pillActive : {}),
+                }}
               >
                 Chicago
               </button>
@@ -149,7 +197,9 @@ export default function CitationsPage() {
             <div style={progressOuter}>
               <div style={{ ...progressInner, width: `${progress}%` }} />
             </div>
-            <div style={hint}>Please wait while we craft {count} {style} citations…</div>
+            <div style={hint}>
+              Please wait while we craft {count} {style} citations…
+            </div>
           </div>
         )}
 
@@ -180,7 +230,7 @@ export default function CitationsPage() {
   );
 }
 
-/* === styles (matching your theme) === */
+/* === styles (unchanged) === */
 const page: React.CSSProperties = { minHeight: "100vh", background: "#0d0d0d", color: "#fff" };
 const container: React.CSSProperties = { maxWidth: 1100, margin: "0 auto", padding: 24 };
 const header: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, marginBottom: 14 };
@@ -193,7 +243,6 @@ const title: React.CSSProperties = {
   background: "linear-gradient(90deg,#ff6ec7,#6ea8ff,#55f2c8)",
   WebkitBackgroundClip: "text", color: "transparent", margin: 0,
 };
-
 const card: React.CSSProperties = {
   background: "linear-gradient(135deg,#101116,#141722)",
   border: "1px solid #2c2f3d",
@@ -210,7 +259,6 @@ const rowWrap: React.CSSProperties = {
 };
 const miniLabel: React.CSSProperties = { color: "#bfc0d7", fontSize: 13, marginRight: 6 };
 const pillRow: React.CSSProperties = { display: "flex", gap: 8, flexWrap: "wrap" };
-
 const input: React.CSSProperties = {
   flex: 1,
   minWidth: 260,
@@ -225,7 +273,6 @@ const primaryBtn: React.CSSProperties = {
   background: "linear-gradient(90deg,#00ffa8,#00c7ff)", color: "#061014", fontWeight: 800,
   padding: "12px 14px", border: "none", borderRadius: 12, cursor: "pointer",
 };
-
 const pillBtn: React.CSSProperties = {
   background: "linear-gradient(90deg,#2b2f44,#1d2030)",
   border: "1px solid #32364a",
@@ -241,7 +288,6 @@ const pillActive: React.CSSProperties = {
   color: "#031016",
   border: "1px solid #3d99ff",
 };
-
 const loaderCard: React.CSSProperties = {
   width: "100%", maxWidth: 640, margin: "26px auto 0",
   background: "linear-gradient(135deg,#111,#171822)",
@@ -260,7 +306,6 @@ const loaderStep: React.CSSProperties = { fontSize: 18, fontWeight: 700, marginB
 const progressOuter: React.CSSProperties = { height: 10, background: "#20212a", borderRadius: 999, overflow: "hidden", border: "1px solid #2f3140" };
 const progressInner: React.CSSProperties = { height: "100%", background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)", transition: "width 600ms ease" };
 const hint: React.CSSProperties = { marginTop: 10, color: "#a8a8c2", fontSize: 13 };
-
 const list: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 10, marginTop: 18 };
 const item: React.CSSProperties = {
   display: "grid",
@@ -281,7 +326,6 @@ const copyBtn: React.CSSProperties = {
   background: "#1b1b1f", border: "1px solid #2f2f38", color: "#d6d6e9",
   padding: "8px 10px", borderRadius: 10, cursor: "pointer",
 };
-
 const footerRow: React.CSSProperties = { display: "flex", justifyContent: "flex-end", marginTop: 12 };
 const copyAllBtn: React.CSSProperties = {
   background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
