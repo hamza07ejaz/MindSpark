@@ -1,15 +1,36 @@
 "use client";
+import { createClient } from "@supabase/supabase-js";
 import { useState, useEffect } from "react";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function Home() {
   const [showSplash, setShowSplash] = useState(true);
   const [input, setInput] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 3000); // show splash for 3s
+    // Splash screen timeout (3 seconds)
+    const timer = setTimeout(() => setShowSplash(false), 3000);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        window.location.href = "/login"; // redirect if not logged in
+      } else {
+        setUser(data.user);
+      }
+    };
+    getUser();
   }, []);
 
   if (showSplash) {
@@ -29,17 +50,16 @@ export default function Home() {
         <h1
           style={{
             fontSize: "42px",
-            fontWeight: 900,
+            fontWeight: 800,
             background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
             WebkitBackgroundClip: "text",
             color: "transparent",
-            marginBottom: "10px",
           }}
         >
           Welcome to Eluna Mind
         </h1>
-        <p style={{ color: "#b5b5c8", fontSize: "18px" }}>
-          Your AI Study Companion
+        <p style={{ color: "#b5b5c8", marginTop: "10px" }}>
+          The smartest way to study ✨
         </p>
       </main>
     );
@@ -57,10 +77,9 @@ export default function Home() {
       });
       const data = await res.json();
 
-      // check if user hit free limit
       if (res.status === 403 && data.upgrade) {
-        alert(data.error); // show upgrade message
-        window.location.href = "/pricing"; // redirect to Premium page
+        alert(data.error);
+        window.location.href = "/pricing";
         return;
       }
 
@@ -114,6 +133,7 @@ export default function Home() {
           Eluna Mind
         </h2>
 
+        {/* 3-dot vertical menu icon */}
         <div
           onClick={() => (window.location.href = "/menu")}
           style={{
@@ -308,6 +328,7 @@ export default function Home() {
         )}
       </section>
 
+      {/* ---- FOOTER ---- */}
       <footer
         style={{
           borderTop: "1px solid rgba(255,255,255,0.1)",
