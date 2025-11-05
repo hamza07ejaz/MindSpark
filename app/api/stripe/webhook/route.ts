@@ -2,40 +2,51 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+// Ensure this runs on Node (needed to verify signatures)
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+  // Match your Stripe dashboard API version; cast to relax TS
   apiVersion: "2025-10-29.clover" as any,
 });
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
 );
-export async function POST(req) {
+
+export async function POST(req: Request) {
   try {
     const sig = req.headers.get("stripe-signature");
-    const body = await req.text();
+    if (!sig) {
+      return NextResponse.json({ error: "Missing stripe-signature" }, { status: 400 });
+    }
 
-    const event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
+    const body = await req.text();
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
+    const event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
 
     if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
-      const email = session.customer_email;
+      const session = event.data.object as Stripe.Checkout.Session;
+
+      const email =
+        session.customer_email ||
+        (typeof session.customer_details?.email === "string"
+          ? session.customer_details.email
+          : undefined);
 
       if (email) {
-        await supabase
-          .from("profiles")
-          .update({ plan: "premium" })
-          .eq("email", email);
+        await supabase.from("profiles").update({ plan: "premium" }).eq("email", email);
       }
     }
 
+    // (Optional) handle downgrades later:
+    // if (event.type === "customer.subscription.deleted") ...
+
     return NextResponse.json({ received: true });
-  } catch (err) {
-    console.error("Webhook Error:", err.message);
-    return NextResponse.json({ error: err.message }, { status: 400 });
+  } catch (err: any) {
+    console.error("Webhook Error:", err?.message || err);
+    return NextResponse.json({ error: err?.message || "Invalid payload" }, { status: 400 });
   }
 }
