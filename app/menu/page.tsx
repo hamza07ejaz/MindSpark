@@ -4,7 +4,7 @@ export default function MenuPage() {
   const links = [
     { name: "Pricing", link: "/pricing" },
     { name: "Sign Up / Login", link: "/auth" },
-    { name: "Help & Support", link: "/support" },
+    { name: "Help & Support", link: "/help" },
     { name: "About", link: "/about" },
   ];
 
