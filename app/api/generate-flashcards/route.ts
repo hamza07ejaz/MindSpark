@@ -1,12 +1,43 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { createClient } from "@supabase/supabase-js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// ✅ Connect Supabase
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 export async function POST(req: Request) {
   try {
+    // ✅ Get user from request (assuming you’re using Clerk or Supabase Auth)
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !user) {
+      return NextResponse.json({ error: "Invalid user" }, { status: 401 });
+    }
+
+    // ✅ Check user plan in Supabase
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || profile.plan !== "premium") {
+      return NextResponse.json({ error: "Flashcards are for Premium users only." }, { status: 403 });
+    }
+
+    // ✅ Proceed with your existing code
     const { topic } = await req.json();
 
     if (!topic) {
@@ -32,7 +63,6 @@ export async function POST(req: Request) {
 
     let text = completion.choices[0]?.message?.content?.trim() || "[]";
 
-    // ✅ Auto-clean output to ensure valid JSON
     const jsonStart = text.indexOf("[");
     const jsonEnd = text.lastIndexOf("]");
     if (jsonStart !== -1 && jsonEnd !== -1) {
