@@ -4,13 +4,7 @@ import Script from "next/script";
 
 type Slide = { title: string; bullets: string[]; notes?: string };
 
-const BASE_CSS = `
-  *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
-  .deck{padding:20px}
-  .slide{margin-bottom:12px}
-`;
-
-// ✅ Move the key style constants ABOVE the component
+// ✅ Move these constants ABOVE component so TS finds them
 const page: React.CSSProperties = { minHeight: "100vh", background: "#0d0d0d", color: "#fff" };
 const container: React.CSSProperties = { maxWidth: 1200, margin: "0 auto", padding: "24px" };
 const header: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, marginBottom: 14 };
@@ -150,6 +144,153 @@ export default function PresentationPage() {
           <button onClick={() => (window.location.href = "/")} style={backBtn}>← Back</button>
           <h1 style={title}>AI Presentation</h1>
         </div>
+
+        <div style={{
+          display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 18,
+        }}>
+          <input
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="Enter your topic…"
+            style={{
+              flex: 1, minWidth: 260, background: "linear-gradient(135deg,#111,#17171b)",
+              border: "1px solid #2d2d36", color: "#e8e8f5", padding: "12px 14px",
+              borderRadius: 12, outline: "none",
+            }}
+          />
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            style={{
+              background: "linear-gradient(90deg,#00ffa8,#00c7ff)",
+              color: "#061014", fontWeight: 800,
+              padding: "12px 14px", border: "none", borderRadius: 12, cursor: "pointer",
+            }}
+          >
+            {loading ? "Generating…" : "Generate Presentation"}
+          </button>
+          <button
+            onClick={() => setEditing((e) => !e)}
+            disabled={slides.length === 0}
+            style={{
+              background: "#1b1b1f", border: "1px solid #2f2f38", color: "#d6d6e9",
+              padding: "12px 14px", borderRadius: 12, cursor: "pointer",
+            }}
+          >
+            {editing ? "Lock Editing" : "Edit Slides"}
+          </button>
+          <button
+            onClick={copyAll}
+            disabled={slides.length === 0}
+            style={{
+              background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
+              color: "#000", fontWeight: 800, padding: "12px 14px",
+              border: "none", borderRadius: 12, cursor: "pointer",
+            }}
+          >
+            {copied ? "Copied!" : "Copy Deck"}
+          </button>
+        </div>
+
+        {loading && (
+          <p style={{ color: "#ccc", marginTop: 20 }}>Generating your slides...</p>
+        )}
+
+        {!loading && slides.length > 0 && (
+          <div
+            ref={deckRef}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill,minmax(420px,1fr))",
+              gap: 16,
+            }}
+          >
+            {slides.map((s, i) => (
+              <div
+                key={i}
+                style={{
+                  background: "linear-gradient(135deg,#101116,#141722)",
+                  border: "1px solid #2c2f3d",
+                  borderRadius: 18,
+                  padding: 18,
+                  minHeight: 220,
+                  boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
+                }}
+              >
+                {editing ? (
+                  <input
+                    value={s.title}
+                    onChange={(e) => updateTitle(i, e.target.value)}
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 800,
+                      marginBottom: 10,
+                      background: "#0f1015",
+                      color: "#fff",
+                      border: "1px solid #2d3040",
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      width: "100%",
+                    }}
+                  />
+                ) : (
+                  <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 10 }}>{s.title}</div>
+                )}
+                <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {s.bullets.map((b, j) =>
+                    editing ? (
+                      <div key={j} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <input
+                          value={b}
+                          onChange={(e) => updateBullet(i, j, e.target.value)}
+                          style={{
+                            flex: 1,
+                            background: "#0f1015",
+                            color: "#e9e9ff",
+                            border: "1px solid #2a2d3c",
+                            borderRadius: 10,
+                            padding: "8px 10px",
+                          }}
+                        />
+                        <button
+                          onClick={() => removeBullet(i, j)}
+                          style={{
+                            background: "#2a2d3a",
+                            border: "1px solid #3a3d4c",
+                            color: "#dedeee",
+                            padding: "6px 10px",
+                            borderRadius: 10,
+                            cursor: "pointer",
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div key={j} style={{ fontSize: 16, color: "#e4e4f2" }}>• {b}</div>
+                    )
+                  )}
+                  {editing && (
+                    <button
+                      onClick={() => addBullet(i)}
+                      style={{
+                        alignSelf: "flex-start",
+                        background: "#1b1c22",
+                        border: "1px solid #2e3040",
+                        color: "#cfd0e6",
+                        padding: "8px 10px",
+                        borderRadius: 10,
+                        cursor: "pointer",
+                      }}
+                    >
+                      + Add bullet
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
