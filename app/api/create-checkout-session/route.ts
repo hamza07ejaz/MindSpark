@@ -1,30 +1,40 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-10-29.clover" as any,
 });
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
-    const supabase = createClient(
+    const cookieStore = cookies();
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set() {},
+          remove() {},
+        },
+      }
     );
 
-    // ✅ get current user session from Supabase
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+    if (error || !user) {
+      console.error("Supabase user not found:", error);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user;
-
-    const sessionStripe = await stripe.checkout.sessions.create({
+    const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [
@@ -35,17 +45,15 @@ export async function POST(req: Request) {
       ],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
-
-      // ✅ send user details so webhook can match them later
       customer_email: user.email!,
-      client_reference_id: user.id, // VERY IMPORTANT LINE
+      client_reference_id: user.id,
     });
 
-    return NextResponse.json({ url: sessionStripe.url });
-  } catch (err) {
-    console.error("Stripe error:", err);
+    return NextResponse.json({ url: session.url });
+  } catch (err: any) {
+    console.error("Stripe error:", err.message);
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      { error: err.message || "Failed to create checkout session" },
       { status: 500 }
     );
   }
