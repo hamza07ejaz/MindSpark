@@ -1,40 +1,38 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 
+// ✅ Stripe setup
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-10-29.clover" as any,
 });
 
-// (optional, but fine) export const runtime = "nodejs";
+// ✅ Supabase admin client (server-side only)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    // ⬇️ FIX: await cookies() in your Next version
-    const cookieStore = await cookies();
+    // --- Get access token from the request ---
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get: (name: string) => cookieStore.get(name)?.value,
-          // no-ops are OK for this route
-          set() {},
-          remove() {},
-        },
-      }
-    );
+    const token = authHeader.replace("Bearer ", "");
 
-    const { data, error } = await supabase.auth.getUser();
+    // --- Verify user with Supabase ---
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
     if (error || !data?.user) {
-      console.error("Supabase user not found:", error);
+      console.error("Auth error:", error);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = data.user;
 
+    // --- Create Stripe Checkout session ---
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
@@ -46,15 +44,15 @@ export async function POST() {
       ],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
-      customer_email: user.email!,
+      customer_email: user.email || undefined,
       client_reference_id: user.id,
     });
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("Stripe error:", err?.message || err);
+    console.error("Stripe error:", err.message);
     return NextResponse.json(
-      { error: err?.message || "Failed to create checkout session" },
+      { error: "Failed to create checkout session" },
       { status: 500 }
     );
   }
