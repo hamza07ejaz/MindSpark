@@ -14,6 +14,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "Text cannot be empty." }, { status: 400 });
     }
 
+    // --- Persistent Daily Limit Tracking (via date) ---
     const today = new Date().toISOString().split("T")[0];
     const key = `${fakeUser.id}-${today}`;
     const count = notesLog.get(key) || 0;
@@ -22,7 +23,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json(
         {
           error:
-            "You’ve reached your daily limit of 2 notes. Upgrade to Premium for unlimited notes.",
+            "You’ve reached your daily limit of 2 notes. Come back after 24 hours or upgrade to Premium for unlimited notes.",
           upgrade: true,
         },
         { status: 403 }
@@ -56,9 +57,17 @@ export async function POST(req: Request): Promise<NextResponse> {
     const data = await response.json();
     const notes = data.choices?.[0]?.message?.content || "No notes generated.";
 
+    // increase counter
     notesLog.set(key, count + 1);
 
-    return NextResponse.json({ notes });
+    // send back both notes + remaining limit
+    return NextResponse.json({
+      notes,
+      remaining:
+        fakeUser.plan === "free"
+          ? Math.max(0, 2 - (count + 1))
+          : "unlimited",
+    });
   } catch (error) {
     console.error("Error generating notes:", error);
     return NextResponse.json(
