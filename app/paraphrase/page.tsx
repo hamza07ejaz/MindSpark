@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 export default function Paraphraser() {
@@ -43,7 +43,6 @@ export default function Paraphraser() {
         setChecking(false);
       }
     };
-
     checkPlan();
   }, []);
 
@@ -58,7 +57,6 @@ export default function Paraphraser() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: input }),
       });
-
       const data = await res.json();
       setOutput(data.paraphrased || "No paraphrased text generated.");
     } catch (err) {
@@ -93,55 +91,6 @@ export default function Paraphraser() {
     );
   }
 
-  if (plan !== "premium") {
-    return (
-      <main
-        style={{
-          background: "#0d0d0d",
-          color: "#fff",
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "sans-serif",
-          textAlign: "center",
-          padding: "20px",
-        }}
-      >
-        <h1
-          style={{
-            fontSize: "32px",
-            background: "linear-gradient(90deg, #27f0c8, #3aa3ff, #b575ff)",
-            WebkitBackgroundClip: "text",
-            color: "transparent",
-            marginBottom: "16px",
-          }}
-        >
-          Premium Feature Locked
-        </h1>
-        <p style={{ maxWidth: "500px", color: "#ccc", marginBottom: "30px" }}>
-          The Paraphrasing Tool is available only for Premium members. Upgrade now to unlock unlimited paraphrasing and advanced features.
-        </p>
-        <button
-          onClick={() => (window.location.href = "/upgrade")}
-          style={{
-            background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
-            color: "#000",
-            padding: "12px 22px",
-            borderRadius: "10px",
-            border: "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            boxShadow: "0 0 18px rgba(58,163,255,0.4)",
-          }}
-        >
-          Upgrade to Premium
-        </button>
-      </main>
-    );
-  }
-
   return (
     <main
       style={{
@@ -154,6 +103,7 @@ export default function Paraphraser() {
         justifyContent: "flex-start",
         fontFamily: "sans-serif",
         padding: "40px 20px",
+        position: "relative",
       }}
     >
       <button
@@ -244,7 +194,9 @@ export default function Paraphraser() {
           }}
         >
           <h3>Original Text</h3>
-          <p style={{ color: "#ddd", whiteSpace: "pre-wrap" }}>{input || "Your original text will appear here."}</p>
+          <p style={{ color: "#ddd", whiteSpace: "pre-wrap" }}>
+            {input || "Your original text will appear here."}
+          </p>
         </div>
 
         <div
@@ -259,7 +211,9 @@ export default function Paraphraser() {
           }}
         >
           <h3>Paraphrased Text</h3>
-          <p style={{ color: "#ddd", whiteSpace: "pre-wrap" }}>{output || "Your paraphrased text will appear here."}</p>
+          <p style={{ color: "#ddd", whiteSpace: "pre-wrap" }}>
+            {output || "Your paraphrased text will appear here."}
+          </p>
 
           {output && (
             <button
@@ -268,7 +222,8 @@ export default function Paraphraser() {
                 position: "absolute",
                 top: "15px",
                 right: "15px",
-                background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
+                background:
+                  "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
                 color: "#000",
                 padding: "6px 10px",
                 borderRadius: "6px",
@@ -282,6 +237,64 @@ export default function Paraphraser() {
           )}
         </div>
       </div>
+
+      {plan !== "premium" && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0,0,0,0.9)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: "32px",
+              background:
+                "linear-gradient(90deg, #27f0c8, #3aa3ff, #b575ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+              marginBottom: "16px",
+            }}
+          >
+            Premium Feature Locked
+          </h1>
+          <p
+            style={{
+              maxWidth: "500px",
+              color: "#ccc",
+              marginBottom: "30px",
+            }}
+          >
+            The Paraphrasing Tool is available only for Premium members. Upgrade
+            now to unlock unlimited paraphrasing and advanced features.
+          </p>
+          <button
+            onClick={() => (window.location.href = "/premium")}
+            style={{
+              background:
+                "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
+              color: "#000",
+              padding: "12px 22px",
+              borderRadius: "10px",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: "bold",
+              boxShadow: "0 0 18px rgba(58,163,255,0.4)",
+            }}
+          >
+            Upgrade to Premium
+          </button>
+        </div>
+      )}
     </main>
   );
 }
