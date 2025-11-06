@@ -5,17 +5,31 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// This ensures every logged-in user has a record in the 'profiles' table
 export async function syncProfile() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) {
+    console.error("Session error:", sessionError.message);
+    return;
+  }
 
-  if (!user) return;
+  const user = sessionData?.session?.user;
+  if (!user) {
+    console.warn("No logged-in user found for syncProfile.");
+    return;
+  }
 
-  await supabase.from("profiles").upsert({
-    id: user.id,
-    email: user.email,
-    plan: "free", // default plan for new users
-  });
+  const { error: upsertError } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        email: user.email,
+        plan: "free", // default plan
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" }
+    );
+
+  if (upsertError) console.error("Error saving user:", upsertError.message);
+  else console.log("User synced successfully:", user.email);
 }
