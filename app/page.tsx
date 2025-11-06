@@ -1,6 +1,7 @@
 "use client";
 import { createClient } from "@supabase/supabase-js";
 import { useState, useEffect } from "react";
+import { syncProfile } from "../utils/syncProfile"; // put this at the top with your other imports
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,6 +34,10 @@ export default function Home() {
     getUser();
   }, []);
 
+useEffect(() => {
+  // Create or update the user record in Supabase
+  syncProfile();
+}, []);
   if (showSplash) {
     return (
       <main
