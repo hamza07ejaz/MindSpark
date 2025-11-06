@@ -1,5 +1,12 @@
 "use client";
 import React from "react";
+import { createClient } from "@supabase/supabase-js"; // ✅ ADD THIS
+
+// ✅ Supabase client for frontend auth
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function PricingPage() {
   const plans = [
@@ -30,24 +37,39 @@ export default function PricingPage() {
     },
   ];
 
+  // ✅ FIXED handleUpgrade — uses Supabase token instead of cookies
   const handleUpgrade = async (planName: string) => {
     if (planName === "Free") {
       alert("Free plan selected");
       return;
     }
 
+    // 1. get current session
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      alert("Please log in first");
+      window.location.href = "/login";
+      return;
+    }
+
     try {
+      // 2. call backend API with auth token
       const response = await fetch("/api/create-checkout-session", {
         method: "POST",
-        credentials: "include", // ✅ keeps Supabase session cookies
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
-      const session = await response.json();
+      const result = await response.json();
 
-      if (session.url) {
-        window.location.href = session.url;
+      if (response.ok && result.url) {
+        window.location.href = result.url;
       } else {
-        alert(session.error || "Unable to start checkout session");
+        alert(result.error || "Unable to start checkout session");
       }
     } catch (error) {
       console.error("Error:", error);
@@ -55,6 +77,7 @@ export default function PricingPage() {
     }
   };
 
+  // your UI stays 100% same
   return (
     <main
       style={{
