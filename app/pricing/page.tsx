@@ -37,12 +37,44 @@ export default function PricingPage() {
     },
   ];
 
-  // ✅ FIXED handleUpgrade — uses Supabase token instead of cookies
   const handleUpgrade = async (planName: string) => {
-    if (planName === "Free") {
-      alert("Free plan selected");
-      return;
+  if (planName === "Free") {
+    alert("Free plan selected");
+    return;
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.user?.id || !session.user.email) {
+    alert("Please log in first");
+    window.location.href = "/login";
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/create-checkout-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: session.user.id,
+        email: session.user.email,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.url) {
+      window.location.href = result.url;
+    } else {
+      alert(result.error || "Unable to start checkout session");
     }
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong. Please try again.");
+  }
+};
 
     // 1. get current session
     const {
