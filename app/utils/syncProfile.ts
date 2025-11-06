@@ -6,26 +6,23 @@ const supabase = createClient(
 );
 
 export async function syncProfile() {
-  try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError) throw userError;
-    if (!user) return;
+  const { data } = await supabase.auth.getUser();
+  const user = data?.user;
 
-    const { error } = await supabase
-      .from("profiles")
-      .upsert(
-        {
-          id: user.id,
-          email: user.email,
-          plan: "free",
-          created_at: new Date().toISOString(),
-        },
-        { onConflict: "id" }
-      );
+  if (!user) {
+    console.log("No user logged in yet");
+    return;
+  }
 
-    if (error) console.error("Sync error:", error);
-    else console.log("✅ Profile synced successfully:", user.email);
-  } catch (err) {
-    console.error("SyncProfile failed:", err);
+  const { error } = await supabase.from("profiles").upsert({
+    id: user.id,
+    email: user.email,
+    plan: "free"
+  });
+
+  if (error) {
+    console.log("PROFILE UPSERT ERROR:", error);
+  } else {
+    console.log("PROFILE SYNCED ✅");
   }
 }
