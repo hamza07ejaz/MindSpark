@@ -34,10 +34,21 @@ export default function Home() {
     getUser();
   }, []);
 
-useEffect(() => {
-  // Create or update the user record in Supabase
-  syncProfile();
-}, []);
+  useEffect(() => {
+    // Create or update the user record in Supabase
+    const runSync = async () => {
+      console.log("Running syncProfile test...");
+      try {
+        await syncProfile();
+        console.log("syncProfile completed.");
+      } catch (err) {
+        console.error("syncProfile error:", err);
+      }
+    };
+
+    runSync();
+  }, []);
+
   if (showSplash) {
     return (
       <main
@@ -254,7 +265,11 @@ useEffect(() => {
             }}
           >
             {[
-              { name: "Generate Notes", color: "linear-gradient(90deg,#00ffa8,#00c7ff)", action: handleGenerateNotes },
+              {
+                name: "Generate Notes",
+                color: "linear-gradient(90deg,#00ffa8,#00c7ff)",
+                action: handleGenerateNotes,
+              },
               { name: "Q&A", color: "linear-gradient(90deg,#007bff,#00bfff)", link: "/qna" },
               { name: "Flashcards", color: "linear-gradient(90deg,#a56eff,#9b59b6)", link: "/flashcards" },
               { name: "Test", color: "linear-gradient(90deg,#ff8c00,#ffb347)", link: "/test" },
@@ -348,9 +363,6 @@ useEffect(() => {
           style={{
             height: "3px",
             background: "linear-gradient(90deg,#27f0c8,#3aa3ff,#b575ff)",
-            borderRadius: "999px",
-            width: "80%",
-            margin: "0 auto 25px auto",
           }}
         />
         <p style={{ marginBottom: "6px" }}>
