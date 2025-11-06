@@ -1,7 +1,7 @@
 "use client";
 import { createClient } from "@supabase/supabase-js";
 import { useState, useEffect } from "react";
-import { syncProfile } from "../utils/syncProfile"; // put this at the top with your other imports
+import { syncProfile } from "./utils/syncProfile";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
