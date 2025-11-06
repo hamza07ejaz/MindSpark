@@ -25,7 +25,11 @@ export async function POST(req: Request) {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
     const event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
 
-    if (event.type === "checkout.session.completed") {
+    // Handle checkout completion and invoice success
+    if (
+      event.type === "checkout.session.completed" ||
+      event.type === "invoice.payment_succeeded"
+    ) {
       const session = event.data.object as Stripe.Checkout.Session;
 
       const email =
@@ -35,7 +39,11 @@ export async function POST(req: Request) {
           : undefined);
 
       if (email) {
-        await supabase.from("profiles").update({ plan: "premium" }).eq("email", email);
+        await supabase
+          .from("profiles")
+          .update({ plan: "premium" })
+          .eq("email", email);
+        console.log(`✅ Updated ${email} to premium`);
       }
     }
 
