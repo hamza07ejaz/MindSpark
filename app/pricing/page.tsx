@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { createClient } from "@supabase/supabase-js"; // ✅ ADD THIS
+import { createClient } from "@supabase/supabase-js";
 
 // ✅ Supabase client for frontend auth
 const supabase = createClient(
@@ -37,63 +37,31 @@ export default function PricingPage() {
     },
   ];
 
+  // ✅ Fixed version of handleUpgrade
   const handleUpgrade = async (planName: string) => {
-  if (planName === "Free") {
-    alert("Free plan selected");
-    return;
-  }
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.user?.id || !session.user.email) {
-    alert("Please log in first");
-    window.location.href = "/login";
-    return;
-  }
-
-  try {
-    const response = await fetch("/api/create-checkout-session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: session.user.id,
-        email: session.user.email,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (response.ok && result.url) {
-      window.location.href = result.url;
-    } else {
-      alert(result.error || "Unable to start checkout session");
+    if (planName === "Free") {
+      alert("Free plan selected");
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    alert("Something went wrong. Please try again.");
-  }
-};
 
-    // 1. get current session
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
-    if (!session?.access_token) {
+    if (!session?.user?.id || !session.user.email) {
       alert("Please log in first");
       window.location.href = "/login";
       return;
     }
 
     try {
-      // 2. call backend API with auth token
       const response = await fetch("/api/create-checkout-session", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: session.user.id,
+          email: session.user.email,
+        }),
       });
 
       const result = await response.json();
@@ -109,7 +77,7 @@ export default function PricingPage() {
     }
   };
 
-  // your UI stays 100% same
+  // ✅ UI section
   return (
     <main
       style={{
