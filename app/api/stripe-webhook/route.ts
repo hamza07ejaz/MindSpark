@@ -25,25 +25,24 @@ export async function POST(req: Request) {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
     const event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
 
-    // Handle checkout completion and invoice success
+    // Handle subscription success or completed checkout
     if (
       event.type === "checkout.session.completed" ||
       event.type === "invoice.payment_succeeded"
     ) {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      const email =
-        session.customer_email ||
-        (typeof session.customer_details?.email === "string"
-          ? session.customer_details.email
-          : undefined);
+      // Identify user by client_reference_id (from checkout creation)
+      const userId = session.client_reference_id;
 
-      if (email) {
-        await supabase
+      if (userId) {
+        const { error } = await supabase
           .from("profiles")
           .update({ plan: "premium" })
-          .eq("email", email);
-        console.log(`✅ Updated ${email} to premium`);
+          .eq("id", userId);
+
+        if (error) console.error("Supabase update error:", error);
+        else console.log(`✅ Updated user ${userId} to premium`);
       }
     }
 
